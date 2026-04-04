@@ -1,0 +1,22 @@
+services:
+  hausmanager:
+    build: .
+    container_name: hausmanager
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - hausmanager_data:/app/data
+      - hausmanager_uploads:/app/uploads
+    environment:
+      DATABASE_URL: "file:/app/data/hausmanager.db"
+      UPLOAD_DIR: "/app/uploads"
+      NODE_ENV: production
+    mem_limit: 512m
+    cpus: '0.5'
+
+volumes:
+  hausmanager_data:
+    driver: local
+  hausmanager_uploads:
+    driver: local

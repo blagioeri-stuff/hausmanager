@@ -1,0 +1,62 @@
+import type { ComponentTypeDefinition } from '@/lib/component-types';
+
+export interface RawComponent {
+  id: string;
+  name: string;
+  typeKey: string;
+  buildYear: number;
+  customCostChf: number | null;
+  customLifetimeYrs: number | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EnrichedComponent extends RawComponent {
+  typeDef: ComponentTypeDefinition;
+  effectiveCostChf: number;
+  effectiveLifetimeYrs: number;
+  replacementYear: number;
+  yearsRemaining: number;
+  ageYears: number;
+  ageRatio: number;
+  annualSavingsChf: number;
+  totalReserveNeededChf: number;
+  statusColor: 'green' | 'yellow' | 'red';
+}
+
+export interface ReserveSummary {
+  totalAnnualSavingsChf: number;
+  totalReserveNeededChf: number;
+  componentCount: number;
+  nextReplacementComponent: EnrichedComponent | null;
+  nextReplacementYear: number | null;
+  componentsDueIn10Years: EnrichedComponent[];
+}
+
+export interface ReserveProjectionRow {
+  year: number;
+  accumulated: number;
+  expenditure: number;
+  balance: number;
+}
+
+export interface RawMaintenanceEntry {
+  id: string;
+  componentId: string;
+  date: string;
+  description: string;
+  costChf: number | null;
+  serviceProvider: string | null;
+  createdAt: string;
+}
+
+export interface RawDocument {
+  id: string;
+  componentId: string;
+  filename: string;
+  storedName: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+}
