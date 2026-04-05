@@ -12,6 +12,9 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset"
   },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
     "@hookform/resolvers": "^5.2.2",
