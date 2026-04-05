@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/Button';
 export const dynamic = 'force-dynamic';
 
 const ReserveChart = nextDynamic(() => import('@/components/charts/ReserveChart').then(m => m.ReserveChart), { ssr: false });
-const AnnualCostChart = nextDynamic(() => import('@/components/charts/AnnualCostChart').then(m => m.AnnualCostChart), { ssr: false });
 
 export default async function DashboardPage() {
   const [raw, istSetting, monthlySetting] = await Promise.all([
@@ -31,7 +30,7 @@ export default async function DashboardPage() {
   const enriched = rawComponents.map((c) => enrichComponent(c));
 
   const summary = computeReserveSummary(enriched, istReserveChf);
-  const projection = buildReserveProjection(enriched, 40, istReserveChf, annualContribution);
+  const projection = buildReserveProjection(enriched, 15, istReserveChf, annualContribution);
 
   return (
     <div className="space-y-8">
@@ -48,23 +47,13 @@ export default async function DashboardPage() {
       <SummaryCards summary={summary} />
 
       {enriched.length > 0 && (
-        <div className="space-y-6">
-          <Card>
-            <div className="mb-4">
-              <CardTitle>Reserve-Projektion (30 Jahre)</CardTitle>
-              <p className="text-xs text-gray-400 mt-1">Grün = IST-Rücklage · Amber = SOLL · Rot = Ausgaben · Klick auf Jahr für Details</p>
-            </div>
-            <ReserveChart data={projection} rawComponents={rawComponents} />
-          </Card>
-
-          <Card>
-            <div className="mb-4">
-              <CardTitle>Jährliche Rücklage pro Komponente</CardTitle>
-              <p className="text-xs text-gray-400 mt-1">Farbe = Status (grün/gelb/rot)</p>
-            </div>
-            <AnnualCostChart components={enriched} />
-          </Card>
-        </div>
+        <Card>
+          <div className="mb-4">
+            <CardTitle>Reserve-Projektion (15 Jahre)</CardTitle>
+            <p className="text-xs text-gray-400 mt-1">Grün = IST-Rücklage · Amber = SOLL · Rot = Ausgaben · Klick auf Jahr für Details</p>
+          </div>
+          <ReserveChart data={projection} rawComponents={rawComponents} />
+        </Card>
       )}
 
       <Card>

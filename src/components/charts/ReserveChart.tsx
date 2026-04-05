@@ -10,7 +10,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
@@ -41,6 +40,14 @@ const SERIES_LABELS: Record<string, string> = {
   expenditure: 'Ausgaben',
 };
 
+type VisibleKey = 'istBalance' | 'sollBalance' | 'expenditure';
+
+const SERIES_CONFIG: { key: VisibleKey; label: string; activeColor: string; dotColor: string }[] = [
+  { key: 'istBalance', label: 'IST-Rücklagen', activeColor: '#16a34a', dotColor: '#bbf7d0' },
+  { key: 'sollBalance', label: 'SOLL-Rücklagen', activeColor: '#f59e0b', dotColor: '#fef3c7' },
+  { key: 'expenditure', label: 'Ausgaben', activeColor: '#ef4444', dotColor: '#fee2e2' },
+];
+
 function CustomTooltip({
   active,
   payload,
@@ -54,7 +61,6 @@ function CustomTooltip({
 }) {
   if (!active || !payload?.length) return null;
 
-  // Find component names with expenditure in this year
   const expendureComponents = label
     ? rawComponents
         .map((c) => enrichComponentAtYear(c, label))
@@ -89,13 +95,22 @@ function CustomTooltip({
 
 export function ReserveChart({ data, rawComponents = [] }: Props) {
   const currentYear = new Date().getFullYear();
-  const filtered = data.filter((d) => d.year <= currentYear + 30);
+  const filtered = data.filter((d) => d.year <= currentYear + 15);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [visible, setVisible] = useState<Record<VisibleKey, boolean>>({
+    istBalance: true,
+    sollBalance: true,
+    expenditure: true,
+  });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function handleClick(chartData: any) {
-    const year = chartData?.activePayload?.[0]?.payload?.year;
-    if (year) setSelectedYear(year);
+    const year = chartData?.activeLabel;
+    if (year) setSelectedYear(Number(year));
+  }
+
+  function toggle(key: VisibleKey) {
+    setVisible((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
   const yearComponents = selectedYear
@@ -104,38 +119,72 @@ export function ReserveChart({ data, rawComponents = [] }: Props) {
 
   return (
     <>
+      {/* Toggle pills */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        {SERIES_CONFIG.map(({ key, label, activeColor, dotColor }) => (
+          <button
+            key={key}
+            onClick={() => toggle(key)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-colors"
+            style={
+              visible[key]
+                ? { backgroundColor: dotColor, borderColor: activeColor, color: activeColor }
+                : { backgroundColor: '#f3f4f6', borderColor: '#d1d5db', color: '#9ca3af' }
+            }
+          >
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: visible[key] ? activeColor : '#d1d5db' }}
+            />
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={filtered} margin={{ top: 5, right: 10, left: 10, bottom: 5 }} onClick={handleClick} style={{ cursor: 'pointer' }}>
+          <ComposedChart
+            data={filtered}
+            margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+            onClick={handleClick}
+            style={{ cursor: 'pointer' }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-            <YAxis tickFormatter={formatChfK} tick={{ fontSize: 11 }} width={50} />
+            <YAxis tickFormatter={formatChfK} tick={{ fontSize: 11 }} width={50} domain={['auto', 'auto']} />
             <Tooltip content={<CustomTooltip rawComponents={rawComponents} />} />
-            <Legend
-              wrapperStyle={{ fontSize: '12px' }}
-              formatter={(value) => SERIES_LABELS[value] ?? value}
+            <ReferenceLine
+              x={currentYear}
+              stroke="#6366f1"
+              strokeDasharray="4 4"
+              label={{ value: 'Heute', fontSize: 11, fill: '#6366f1' }}
             />
-            <ReferenceLine x={currentYear} stroke="#6366f1" strokeDasharray="4 4" label={{ value: 'Heute', fontSize: 11, fill: '#6366f1' }} />
             <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="2 2" />
-            <Bar dataKey="expenditure" fill="#f87171" opacity={0.7} name="expenditure" barSize={12} />
-            <Area
-              type="monotone"
-              dataKey="istBalance"
-              fill="#bbf7d0"
-              stroke="#16a34a"
-              strokeWidth={2}
-              fillOpacity={0.35}
-              name="istBalance"
-            />
-            <Line
-              type="monotone"
-              dataKey="sollBalance"
-              stroke="#f59e0b"
-              strokeWidth={2}
-              strokeDasharray="6 3"
-              dot={false}
-              name="sollBalance"
-            />
+            {visible.expenditure && (
+              <Bar dataKey="expenditure" fill="#f87171" opacity={0.7} name="expenditure" barSize={12} />
+            )}
+            {visible.istBalance && (
+              <Area
+                type="monotone"
+                dataKey="istBalance"
+                fill="#bbf7d0"
+                stroke="#16a34a"
+                strokeWidth={2}
+                fillOpacity={0.35}
+                name="istBalance"
+              />
+            )}
+            {visible.sollBalance && (
+              <Line
+                type="monotone"
+                dataKey="sollBalance"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                strokeDasharray="6 3"
+                dot={false}
+                name="sollBalance"
+              />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
       </div>

@@ -44,10 +44,64 @@ export function enrichComponent(
   };
 }
 
+/**
+ * Compute sollReserveChf for a component at a given target year,
+ * correctly resetting to 0 after each renovation cycle.
+ *
+ * Before first replacement: age-proportional from original build year.
+ * After first replacement: cycle-based (resets to 0 at each renewal).
+ */
+function computeSollAtYear(component: RawComponent, targetYear: number): number {
+  const typeDef = COMPONENT_TYPES[component.typeKey];
+  const effectiveCostChf =
+    component.plannedRenovationCostChf ?? component.customCostChf ?? typeDef.defaultCostChf;
+  const effectiveLifetimeYrs = component.customLifetimeYrs ?? typeDef.defaultLifetimeYrs;
+  const firstReplacementYear =
+    component.plannedRenovationYear ?? (component.buildYear + effectiveLifetimeYrs);
+
+  if (targetYear < firstReplacementYear) {
+    const ageYears = Math.max(0, targetYear - component.buildYear);
+    return effectiveCostChf * Math.min(ageYears / effectiveLifetimeYrs, 1);
+  } else {
+    // After first renewal: SOLL resets to 0, grows proportionally in each cycle
+    const yearsAfterFirst = targetYear - firstReplacementYear;
+    const yearInCycle = yearsAfterFirst % effectiveLifetimeYrs;
+    return effectiveCostChf * (yearInCycle / effectiveLifetimeYrs);
+  }
+}
+
+/**
+ * Enrich a component as it would appear at a specific target year,
+ * correctly handling post-renovation cycles (SOLL resets to 0 at each renewal).
+ */
 export function enrichComponentAtYear(
   component: RawComponent,
   targetYear: number
 ): EnrichedComponent {
+  const typeDef = COMPONENT_TYPES[component.typeKey];
+  const effectiveCostChf =
+    component.plannedRenovationCostChf ?? component.customCostChf ?? typeDef.defaultCostChf;
+  const effectiveLifetimeYrs = component.customLifetimeYrs ?? typeDef.defaultLifetimeYrs;
+  const firstReplacementYear =
+    component.plannedRenovationYear ?? (component.buildYear + effectiveLifetimeYrs);
+
+  if (targetYear >= firstReplacementYear) {
+    // Compute which cycle we're in and create a virtual component starting at that cycle's build year
+    const yearsAfterFirst = targetYear - firstReplacementYear;
+    const cyclesPassed = Math.floor(yearsAfterFirst / effectiveLifetimeYrs);
+    const virtualBuildYear = firstReplacementYear + cyclesPassed * effectiveLifetimeYrs;
+    return enrichComponent(
+      {
+        ...component,
+        buildYear: virtualBuildYear,
+        plannedRenovationYear: null,
+        customCostChf: effectiveCostChf,
+        plannedRenovationCostChf: null,
+      },
+      targetYear
+    );
+  }
+
   return enrichComponent(component, targetYear);
 }
 
@@ -84,23 +138,21 @@ export function computeReserveSummary(
 
 export function buildReserveProjection(
   enriched: EnrichedComponent[],
-  horizonYears: number = 40,
+  horizonYears: number = 15,
   istReserveChf: number = 0,
   annualContribution: number = 0
 ): ReserveProjectionRow[] {
   const currentYear = new Date().getFullYear();
   const annualTotal = enriched.reduce((sum, c) => sum + c.annualSavingsChf, 0);
-  // Starting balance = total SOLL reserve (what should be in the account today)
   const startingBalance = enriched.reduce((sum, c) => sum + c.sollReserveChf, 0);
+
+  const rawComponents = enriched as unknown as RawComponent[];
 
   const expendituresByYear = new Map<number, number>();
   for (const c of enriched) {
     const existing = expendituresByYear.get(c.replacementYear) ?? 0;
     expendituresByYear.set(c.replacementYear, existing + c.effectiveCostChf);
   }
-
-  // For sollBalance per year: re-enrich each component at that year
-  const rawComponents = enriched as unknown as RawComponent[];
 
   const rows: ReserveProjectionRow[] = [];
   let cumulativeExpenditure = 0;
@@ -119,9 +171,9 @@ export function buildReserveProjection(
       istBalance = istBalance + annualContribution - expenditure;
     }
 
-    // SOLL balance: sum of sollReserveChf for each component at this year
+    // SOLL balance: sum of per-component SOLL at this year (resets after renovation)
     const sollBalance = Math.round(
-      rawComponents.reduce((s, c) => s + enrichComponentAtYear(c, year).sollReserveChf, 0)
+      rawComponents.reduce((s, c) => s + computeSollAtYear(c, year), 0)
     );
 
     rows.push({
