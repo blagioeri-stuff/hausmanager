@@ -3,11 +3,13 @@ import { enrichComponent, computeReserveSummary, buildReserveProjection } from '
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SummaryCards } from '@/components/SummaryCards';
 import { StatusGrid } from '@/components/charts/StatusGrid';
-import { ReserveChart } from '@/components/charts/ReserveChart';
-import { AnnualCostChart } from '@/components/charts/AnnualCostChart';
+import dynamic from 'next/dynamic';
 import { Card, CardTitle } from '@/components/ui/Card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
+
+const ReserveChart = dynamic(() => import('@/components/charts/ReserveChart').then(m => m.ReserveChart), { ssr: false });
+const AnnualCostChart = dynamic(() => import('@/components/charts/AnnualCostChart').then(m => m.AnnualCostChart), { ssr: false });
 
 export const dynamic = 'force-dynamic';
 
