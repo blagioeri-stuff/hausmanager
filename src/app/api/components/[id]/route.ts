@@ -13,6 +13,8 @@ const UpdateSchema = z.object({
   buildYear: z.number().int().min(1900).max(new Date().getFullYear()).optional(),
   customCostChf: z.number().positive().nullable().optional(),
   customLifetimeYrs: z.number().int().positive().nullable().optional(),
+  plannedRenovationYear: z.number().int().min(1900).nullable().optional(),
+  plannedRenovationCostChf: z.number().positive().nullable().optional(),
   notes: z.string().nullable().optional(),
 });
 

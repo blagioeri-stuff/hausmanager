@@ -14,7 +14,15 @@ const ReserveChart = nextDynamic(() => import('@/components/charts/ReserveChart'
 const AnnualCostChart = nextDynamic(() => import('@/components/charts/AnnualCostChart').then(m => m.AnnualCostChart), { ssr: false });
 
 export default async function DashboardPage() {
-  const raw = await prisma.homeComponent.findMany({ orderBy: { createdAt: 'desc' } });
+  const [raw, istSetting, monthlySetting] = await Promise.all([
+    prisma.homeComponent.findMany({ orderBy: { createdAt: 'desc' } }),
+    prisma.setting.findUnique({ where: { key: 'istReserveChf' } }),
+    prisma.setting.findUnique({ where: { key: 'monthlyContributionChf' } }),
+  ]);
+
+  const istReserveChf = parseFloat(istSetting?.value ?? '0') || 0;
+  const annualContribution = (parseFloat(monthlySetting?.value ?? '0') || 0) * 12;
+
   const rawComponents = raw.map((c) => ({
     ...c,
     createdAt: c.createdAt.toISOString(),
@@ -22,8 +30,8 @@ export default async function DashboardPage() {
   }));
   const enriched = rawComponents.map((c) => enrichComponent(c));
 
-  const summary = computeReserveSummary(enriched);
-  const projection = buildReserveProjection(enriched);
+  const summary = computeReserveSummary(enriched, istReserveChf);
+  const projection = buildReserveProjection(enriched, 40, istReserveChf, annualContribution);
 
   return (
     <div className="space-y-8">
@@ -39,20 +47,12 @@ export default async function DashboardPage() {
 
       <SummaryCards summary={summary} />
 
-      <Card>
-        <div className="mb-4">
-          <CardTitle>Komponentenstatus</CardTitle>
-          <p className="text-xs text-gray-400 mt-1">Ampeldarstellung — Klick auf Kachel für Details</p>
-        </div>
-        <StatusGrid components={enriched} />
-      </Card>
-
       {enriched.length > 0 && (
         <div className="space-y-6">
           <Card>
             <div className="mb-4">
               <CardTitle>Reserve-Projektion (30 Jahre)</CardTitle>
-              <p className="text-xs text-gray-400 mt-1">Blau = Guthaben · Rot = Ausgaben · Klick auf Jahr für Details</p>
+              <p className="text-xs text-gray-400 mt-1">Grün = IST-Rücklage · Amber = SOLL · Rot = Ausgaben · Klick auf Jahr für Details</p>
             </div>
             <ReserveChart data={projection} rawComponents={rawComponents} />
           </Card>
@@ -66,6 +66,14 @@ export default async function DashboardPage() {
           </Card>
         </div>
       )}
+
+      <Card>
+        <div className="mb-4">
+          <CardTitle>Komponentenstatus</CardTitle>
+          <p className="text-xs text-gray-400 mt-1">Lebensdauerfortschritt aller Komponenten — Klick auf Name für Details</p>
+        </div>
+        <StatusGrid components={enriched} />
+      </Card>
 
       {summary.componentsDueIn10Years.length > 0 && (
         <Card>

@@ -6,7 +6,16 @@ interface Props {
   summary: ReserveSummary;
 }
 
+function deckungsgradColor(pct: number): string {
+  if (pct >= 100) return 'text-green-600';
+  if (pct >= 75) return 'text-yellow-500';
+  return 'text-red-500';
+}
+
 export function SummaryCards({ summary }: Props) {
+  const { deckungsgradPct, istReserveChf, totalSollReserveChf } = summary;
+  const hasIst = istReserveChf > 0;
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Card>
@@ -16,9 +25,26 @@ export function SummaryCards({ summary }: Props) {
       </Card>
 
       <Card>
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">SOLL-Reserve heute</p>
-        <p className="text-2xl font-bold text-amber-600">{formatChf(summary.totalSollReserveChf)}</p>
-        <p className="text-xs text-gray-400 mt-1">proportional angespart</p>
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Deckungsgrad</p>
+        {hasIst && deckungsgradPct !== null ? (
+          <>
+            <p className={`text-2xl font-bold ${deckungsgradColor(deckungsgradPct)}`}>
+              {Math.round(deckungsgradPct)} %
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              IST {formatChf(istReserveChf)} / SOLL {formatChf(totalSollReserveChf)}
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-2xl font-bold text-gray-300">—</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {totalSollReserveChf > 0
+                ? `SOLL: ${formatChf(totalSollReserveChf)} · IST in Einstellungen`
+                : 'In Einstellungen erfassen'}
+            </p>
+          </>
+        )}
       </Card>
 
       <Card>

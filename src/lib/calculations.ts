@@ -8,10 +8,14 @@ export function enrichComponent(
   const typeDef = COMPONENT_TYPES[component.typeKey];
   if (!typeDef) throw new Error(`Unknown component type: ${component.typeKey}`);
 
-  const effectiveCostChf = component.customCostChf ?? typeDef.defaultCostChf;
+  // plannedRenovationCostChf overrides customCostChf overrides type default
+  const effectiveCostChf =
+    component.plannedRenovationCostChf ?? component.customCostChf ?? typeDef.defaultCostChf;
   const effectiveLifetimeYrs = component.customLifetimeYrs ?? typeDef.defaultLifetimeYrs;
 
-  const replacementYear = component.buildYear + effectiveLifetimeYrs;
+  // plannedRenovationYear overrides calculated replacement year
+  const replacementYear =
+    component.plannedRenovationYear ?? (component.buildYear + effectiveLifetimeYrs);
   const yearsRemaining = replacementYear - currentYear;
   const ageYears = currentYear - component.buildYear;
   const ageRatio = Math.min(Math.max(ageYears / effectiveLifetimeYrs, 0), 1);
@@ -47,10 +51,16 @@ export function enrichComponentAtYear(
   return enrichComponent(component, targetYear);
 }
 
-export function computeReserveSummary(enriched: EnrichedComponent[]): ReserveSummary {
+export function computeReserveSummary(
+  enriched: EnrichedComponent[],
+  istReserveChf: number = 0
+): ReserveSummary {
   const totalAnnualSavingsChf = enriched.reduce((sum, c) => sum + c.annualSavingsChf, 0);
   const totalReserveNeededChf = enriched.reduce((sum, c) => sum + c.totalReserveNeededChf, 0);
   const totalSollReserveChf = enriched.reduce((sum, c) => sum + c.sollReserveChf, 0);
+
+  const deckungsgradPct =
+    totalSollReserveChf > 0 ? (istReserveChf / totalSollReserveChf) * 100 : null;
 
   const sorted = [...enriched]
     .filter((c) => c.yearsRemaining >= 0)
@@ -63,6 +73,8 @@ export function computeReserveSummary(enriched: EnrichedComponent[]): ReserveSum
     totalAnnualSavingsChf,
     totalReserveNeededChf,
     totalSollReserveChf,
+    istReserveChf,
+    deckungsgradPct,
     componentCount: enriched.length,
     nextReplacementComponent: nextReplacement,
     nextReplacementYear: nextReplacement?.replacementYear ?? null,
@@ -72,7 +84,9 @@ export function computeReserveSummary(enriched: EnrichedComponent[]): ReserveSum
 
 export function buildReserveProjection(
   enriched: EnrichedComponent[],
-  horizonYears: number = 40
+  horizonYears: number = 40,
+  istReserveChf: number = 0,
+  annualContribution: number = 0
 ): ReserveProjectionRow[] {
   const currentYear = new Date().getFullYear();
   const annualTotal = enriched.reduce((sum, c) => sum + c.annualSavingsChf, 0);
@@ -85,9 +99,13 @@ export function buildReserveProjection(
     expendituresByYear.set(c.replacementYear, existing + c.effectiveCostChf);
   }
 
+  // For sollBalance per year: re-enrich each component at that year
+  const rawComponents = enriched as unknown as RawComponent[];
+
   const rows: ReserveProjectionRow[] = [];
   let cumulativeExpenditure = 0;
   let runningBalance = startingBalance;
+  let istBalance = istReserveChf;
 
   for (let i = 0; i <= horizonYears; i++) {
     const year = currentYear + i;
@@ -95,13 +113,25 @@ export function buildReserveProjection(
     const accumulated = Math.round(annualTotal * i);
     cumulativeExpenditure += expenditure;
     const balance = accumulated - cumulativeExpenditure;
-    if (i > 0) runningBalance = runningBalance + annualTotal - expenditure;
+
+    if (i > 0) {
+      runningBalance = runningBalance + annualTotal - expenditure;
+      istBalance = istBalance + annualContribution - expenditure;
+    }
+
+    // SOLL balance: sum of sollReserveChf for each component at this year
+    const sollBalance = Math.round(
+      rawComponents.reduce((s, c) => s + enrichComponentAtYear(c, year).sollReserveChf, 0)
+    );
+
     rows.push({
       year,
       accumulated,
       expenditure: Math.round(expenditure),
       balance: Math.round(balance),
       runningBalance: Math.round(runningBalance),
+      sollBalance,
+      istBalance: Math.round(istBalance),
     });
   }
 

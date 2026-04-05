@@ -45,7 +45,7 @@ export function StatusGrid({ components }: Props) {
           <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
             <th className="pb-2 font-medium">Komponente</th>
             <th className="pb-2 font-medium hidden sm:table-cell">Typ</th>
-            <th className="pb-2 font-medium">Zustand</th>
+            <th className="pb-2 font-medium">Lebensdauer</th>
             <th className="pb-2 font-medium text-right">Erneuerung</th>
             <th className="pb-2 font-medium text-right hidden md:table-cell">CHF/Jahr</th>
             <th className="pb-2 font-medium text-center">Status</th>

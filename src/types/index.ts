@@ -7,6 +7,8 @@ export interface RawComponent {
   buildYear: number;
   customCostChf: number | null;
   customLifetimeYrs: number | null;
+  plannedRenovationYear: number | null;
+  plannedRenovationCostChf: number | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -30,6 +32,8 @@ export interface ReserveSummary {
   totalAnnualSavingsChf: number;
   totalReserveNeededChf: number;
   totalSollReserveChf: number;
+  istReserveChf: number;
+  deckungsgradPct: number | null;
   componentCount: number;
   nextReplacementComponent: EnrichedComponent | null;
   nextReplacementYear: number | null;
@@ -42,6 +46,8 @@ export interface ReserveProjectionRow {
   expenditure: number;
   balance: number;
   runningBalance: number;
+  sollBalance: number;
+  istBalance: number;
 }
 
 export interface RawMaintenanceEntry {

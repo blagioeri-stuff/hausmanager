@@ -22,6 +22,8 @@ const schema = z.object({
     .max(new Date().getFullYear(), `Max. ${new Date().getFullYear()}`),
   customCostChf: z.number().positive('Muss positiv sein').nullable().optional(),
   customLifetimeYrs: z.number().int().positive('Muss positiv sein').nullable().optional(),
+  plannedRenovationYear: z.number().int('Ganzzahl').min(1900, 'Min. 1900').nullable().optional(),
+  plannedRenovationCostChf: z.number().positive('Muss positiv sein').nullable().optional(),
   notes: z.string().nullable().optional(),
 });
 
@@ -49,6 +51,8 @@ export function ComponentForm({ component }: Props) {
       buildYear: component?.buildYear ?? new Date().getFullYear(),
       customCostChf: component?.customCostChf ?? null,
       customLifetimeYrs: component?.customLifetimeYrs ?? null,
+      plannedRenovationYear: component?.plannedRenovationYear ?? null,
+      plannedRenovationCostChf: component?.plannedRenovationCostChf ?? null,
       notes: component?.notes ?? '',
     },
   });
@@ -72,6 +76,8 @@ export function ComponentForm({ component }: Props) {
           ...data,
           customCostChf: data.customCostChf || null,
           customLifetimeYrs: data.customLifetimeYrs || null,
+          plannedRenovationYear: data.plannedRenovationYear || null,
+          plannedRenovationCostChf: data.plannedRenovationCostChf || null,
           notes: data.notes || null,
         }),
       });
@@ -141,6 +147,25 @@ export function ComponentForm({ component }: Props) {
           hint="Leer = Standardwert verwenden"
           error={errors.customLifetimeYrs?.message}
           {...register('customLifetimeYrs', { valueAsNumber: true, setValueAs: (v) => (v === '' || isNaN(Number(v)) ? null : Number(v)) })}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Input
+          label="Geplantes Renovationsjahr — optional"
+          type="number"
+          placeholder="z.B. 2031"
+          hint="Überschreibt das berechnete Erneuerungsjahr"
+          error={errors.plannedRenovationYear?.message}
+          {...register('plannedRenovationYear', { valueAsNumber: true, setValueAs: (v) => (v === '' || isNaN(Number(v)) ? null : Number(v)) })}
+        />
+        <Input
+          label="Geplante Kosten (CHF) — optional"
+          type="number"
+          placeholder={typeDef ? String(typeDef.defaultCostChf) : ''}
+          hint="Überschreibt Standardkosten und individuelle Kosten"
+          error={errors.plannedRenovationCostChf?.message}
+          {...register('plannedRenovationCostChf', { valueAsNumber: true, setValueAs: (v) => (v === '' || isNaN(Number(v)) ? null : Number(v)) })}
         />
       </div>
 

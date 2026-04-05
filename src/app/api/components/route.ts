@@ -10,6 +10,8 @@ const CreateSchema = z.object({
   buildYear: z.number().int().min(1900).max(new Date().getFullYear()),
   customCostChf: z.number().positive().nullable().optional(),
   customLifetimeYrs: z.number().int().positive().nullable().optional(),
+  plannedRenovationYear: z.number().int().min(1900).nullable().optional(),
+  plannedRenovationCostChf: z.number().positive().nullable().optional(),
   notes: z.string().nullable().optional(),
 });
 
@@ -37,6 +39,8 @@ export async function POST(request: Request) {
       buildYear: parsed.data.buildYear,
       customCostChf: parsed.data.customCostChf ?? null,
       customLifetimeYrs: parsed.data.customLifetimeYrs ?? null,
+      plannedRenovationYear: parsed.data.plannedRenovationYear ?? null,
+      plannedRenovationCostChf: parsed.data.plannedRenovationCostChf ?? null,
       notes: parsed.data.notes ?? null,
     },
   });

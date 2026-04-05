@@ -81,6 +81,30 @@ export function EinstellungenForm({ initialSettings }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* IST-Rücklage */}
+      <Card>
+        <CardTitle className="mb-1">IST-Rücklage</CardTitle>
+        <p className="text-xs text-gray-400 mb-4">Tragen Sie Ihr aktuelles Rücklagenguthaben ein, um den Deckungsgrad auf dem Dashboard zu sehen.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field
+            label="Aktuelles Guthaben (CHF)"
+            type="number"
+            placeholder="z.B. 45000"
+            description="Betrag, der heute auf Ihrem Spar-/Rücklagenkonto liegt"
+            value={settings.istReserveChf ?? ''}
+            onChange={(v) => set('istReserveChf', v)}
+          />
+          <Field
+            label="Monatliche Einzahlung (CHF)"
+            type="number"
+            placeholder="z.B. 500"
+            description="Fixer Betrag, den Sie monatlich auf die Rücklage einzahlen"
+            value={settings.monthlyContributionChf ?? ''}
+            onChange={(v) => set('monthlyContributionChf', v)}
+          />
+        </div>
+      </Card>
+
       {/* General */}
       <Card>
         <CardTitle className="mb-4">Allgemein</CardTitle>

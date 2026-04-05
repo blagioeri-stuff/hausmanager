@@ -5,6 +5,7 @@ import {
   ComposedChart,
   Area,
   Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -34,19 +35,53 @@ function formatChf(n: number) {
 
 const STATUS_LABEL: Record<string, string> = { green: 'Gut', yellow: 'Mittel', red: 'Kritisch' };
 
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: number }) {
+const SERIES_LABELS: Record<string, string> = {
+  istBalance: 'IST-Rücklagen',
+  sollBalance: 'SOLL-Rücklagen',
+  expenditure: 'Ausgaben',
+};
+
+function CustomTooltip({
+  active,
+  payload,
+  label,
+  rawComponents,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+  label?: number;
+  rawComponents: RawComponent[];
+}) {
   if (!active || !payload?.length) return null;
-  const labels: Record<string, string> = {
-    runningBalance: 'Guthaben',
-    expenditure: 'Ausgaben',
-  };
+
+  // Find component names with expenditure in this year
+  const expendureComponents = label
+    ? rawComponents
+        .map((c) => enrichComponentAtYear(c, label))
+        .filter((c) => c.replacementYear === label)
+    : [];
+
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 text-sm">
-      <p className="font-semibold text-gray-900 mb-1">{label} <span className="text-xs text-gray-400 font-normal">(klicken für Details)</span></p>
+    <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 text-sm min-w-[200px]">
+      <p className="font-semibold text-gray-900 mb-1">
+        {label}{' '}
+        <span className="text-xs text-gray-400 font-normal">(klicken für Details)</span>
+      </p>
       {payload.map((p) => (
-        <p key={p.name} style={{ color: p.color }}>
-          {labels[p.name] ?? p.name}: {formatChf(p.value)}
-        </p>
+        <div key={p.name}>
+          <p style={{ color: p.color }}>
+            {SERIES_LABELS[p.name] ?? p.name}: {formatChf(p.value)}
+          </p>
+          {p.name === 'expenditure' && expendureComponents.length > 0 && (
+            <ul className="mt-0.5 ml-2 space-y-0.5">
+              {expendureComponents.map((c) => (
+                <li key={c.id} className="text-xs text-gray-500">
+                  → {c.name} ({formatChf(c.effectiveCostChf)})
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       ))}
     </div>
   );
@@ -75,24 +110,31 @@ export function ReserveChart({ data, rawComponents = [] }: Props) {
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="year" tick={{ fontSize: 11 }} />
             <YAxis tickFormatter={formatChfK} tick={{ fontSize: 11 }} width={50} />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip rawComponents={rawComponents} />} />
             <Legend
               wrapperStyle={{ fontSize: '12px' }}
-              formatter={(value) =>
-                value === 'runningBalance' ? 'Guthaben (laufend)' : value === 'expenditure' ? 'Ausgaben' : value
-              }
+              formatter={(value) => SERIES_LABELS[value] ?? value}
             />
             <ReferenceLine x={currentYear} stroke="#6366f1" strokeDasharray="4 4" label={{ value: 'Heute', fontSize: 11, fill: '#6366f1' }} />
             <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="2 2" />
             <Bar dataKey="expenditure" fill="#f87171" opacity={0.7} name="expenditure" barSize={12} />
             <Area
               type="monotone"
-              dataKey="runningBalance"
-              fill="#dbeafe"
-              stroke="#3b82f6"
+              dataKey="istBalance"
+              fill="#bbf7d0"
+              stroke="#16a34a"
               strokeWidth={2}
-              fillOpacity={0.4}
-              name="runningBalance"
+              fillOpacity={0.35}
+              name="istBalance"
+            />
+            <Line
+              type="monotone"
+              dataKey="sollBalance"
+              stroke="#f59e0b"
+              strokeWidth={2}
+              strokeDasharray="6 3"
+              dot={false}
+              name="sollBalance"
             />
           </ComposedChart>
         </ResponsiveContainer>
