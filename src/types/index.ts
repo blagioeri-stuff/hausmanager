@@ -22,12 +22,14 @@ export interface EnrichedComponent extends RawComponent {
   ageRatio: number;
   annualSavingsChf: number;
   totalReserveNeededChf: number;
+  sollReserveChf: number;
   statusColor: 'green' | 'yellow' | 'red';
 }
 
 export interface ReserveSummary {
   totalAnnualSavingsChf: number;
   totalReserveNeededChf: number;
+  totalSollReserveChf: number;
   componentCount: number;
   nextReplacementComponent: EnrichedComponent | null;
   nextReplacementYear: number | null;
@@ -39,6 +41,7 @@ export interface ReserveProjectionRow {
   accumulated: number;
   expenditure: number;
   balance: number;
+  runningBalance: number;
 }
 
 export interface RawMaintenanceEntry {

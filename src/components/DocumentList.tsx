@@ -3,12 +3,22 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
 import { formatDate, formatFileSize } from '@/lib/formatters';
+import { COMPONENT_TYPES } from '@/lib/component-types';
 import type { RawDocument } from '@/types';
 
 interface Props {
   componentId: string;
   initialDocuments: RawDocument[];
+}
+
+interface AnalysisResult {
+  description: string | null;
+  date: string | null;
+  costChf: number | null;
+  serviceProvider: string | null;
+  suggestedTypeKey: string | null;
 }
 
 function FileIcon({ mimeType }: { mimeType: string }) {
@@ -32,6 +42,15 @@ export function DocumentList({ componentId, initialDocuments }: Props) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // AI analysis state
+  const [analyzing, setAnalyzing] = useState<string | null>(null); // storedName of doc being analyzed
+  const [analysisDoc, setAnalysisDoc] = useState<RawDocument | null>(null);
+  const [analysisDescription, setAnalysisDescription] = useState('');
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [savingMaintenance, setSavingMaintenance] = useState(false);
+  const [maintenanceSaved, setMaintenanceSaved] = useState(false);
 
   const refresh = async () => {
     const res = await fetch(`/api/components/${componentId}/documents`);
@@ -78,6 +97,65 @@ export function DocumentList({ componentId, initialDocuments }: Props) {
     await refresh();
   };
 
+  const openAnalysis = (doc: RawDocument) => {
+    setAnalysisDoc(doc);
+    setAnalysisDescription('');
+    setAnalysisResult(null);
+    setAnalysisError(null);
+    setMaintenanceSaved(false);
+  };
+
+  const runAnalysis = async () => {
+    if (!analysisDoc) return;
+    setAnalyzing(analysisDoc.storedName);
+    setAnalysisResult(null);
+    setAnalysisError(null);
+    try {
+      const res = await fetch('/api/documents/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storedName: analysisDoc.storedName,
+          mimeType: analysisDoc.mimeType,
+          description: analysisDescription,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAnalysisError(data.error ?? 'Fehler bei der Analyse');
+      } else {
+        setAnalysisResult(data);
+      }
+    } catch {
+      setAnalysisError('Netzwerkfehler');
+    } finally {
+      setAnalyzing(null);
+    }
+  };
+
+  const saveMaintenance = async () => {
+    if (!analysisResult) return;
+    setSavingMaintenance(true);
+    try {
+      const res = await fetch(`/api/components/${componentId}/maintenance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: analysisResult.date ?? new Date().toISOString().slice(0, 10),
+          description: analysisResult.description ?? '(aus Dokument extrahiert)',
+          costChf: analysisResult.costChf ?? undefined,
+          serviceProvider: analysisResult.serviceProvider ?? undefined,
+        }),
+      });
+      if (res.ok) {
+        setMaintenanceSaved(true);
+        router.refresh();
+      }
+    } finally {
+      setSavingMaintenance(false);
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -120,6 +198,16 @@ export function DocumentList({ componentId, initialDocuments }: Props) {
                 </p>
               </div>
               <div className="flex gap-1 shrink-0">
+                <button
+                  onClick={() => openAnalysis(doc)}
+                  title="Mit KI analysieren"
+                  className="text-xs text-purple-500 hover:text-purple-700 px-2 py-1 rounded hover:bg-purple-50 flex items-center gap-1"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  KI
+                </button>
                 <a
                   href={`/api/upload/${doc.storedName}`}
                   target="_blank"
@@ -139,6 +227,100 @@ export function DocumentList({ componentId, initialDocuments }: Props) {
           ))}
         </div>
       )}
+
+      {/* AI Analysis Modal */}
+      <Modal
+        open={analysisDoc !== null}
+        onClose={() => setAnalysisDoc(null)}
+        title="Dokument mit KI analysieren"
+      >
+        {analysisDoc && (
+          <div className="space-y-4">
+            <div className="bg-gray-50 rounded-lg px-3 py-2">
+              <p className="text-sm font-medium text-gray-700">{analysisDoc.filename}</p>
+              <p className="text-xs text-gray-400">{formatFileSize(analysisDoc.sizeBytes)}</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Kontext (optional)</label>
+              <input
+                type="text"
+                value={analysisDescription}
+                onChange={(e) => setAnalysisDescription(e.target.value)}
+                placeholder="z.B. «Rechnung Heizungsservice 2024»"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {!analysisResult && (
+              <Button
+                onClick={runAnalysis}
+                loading={analyzing === analysisDoc.storedName}
+                className="w-full justify-center"
+              >
+                Dokument analysieren
+              </Button>
+            )}
+
+            {analysisError && (
+              <div className="bg-red-50 text-red-600 text-sm px-3 py-2 rounded-lg">
+                {analysisError}
+              </div>
+            )}
+
+            {analysisResult && (
+              <div className="space-y-3">
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 space-y-2">
+                  <p className="text-xs font-medium text-blue-600 uppercase tracking-wider mb-2">KI-Ergebnis</p>
+                  {analysisResult.description && (
+                    <div>
+                      <p className="text-xs text-gray-500">Beschreibung</p>
+                      <p className="text-sm text-gray-900">{analysisResult.description}</p>
+                    </div>
+                  )}
+                  {analysisResult.date && (
+                    <div>
+                      <p className="text-xs text-gray-500">Datum</p>
+                      <p className="text-sm text-gray-900">{analysisResult.date}</p>
+                    </div>
+                  )}
+                  {analysisResult.costChf !== null && (
+                    <div>
+                      <p className="text-xs text-gray-500">Betrag</p>
+                      <p className="text-sm font-medium text-gray-900">CHF {analysisResult.costChf?.toLocaleString('de-CH')}</p>
+                    </div>
+                  )}
+                  {analysisResult.serviceProvider && (
+                    <div>
+                      <p className="text-xs text-gray-500">Firma / Handwerker</p>
+                      <p className="text-sm text-gray-900">{analysisResult.serviceProvider}</p>
+                    </div>
+                  )}
+                  {analysisResult.suggestedTypeKey && COMPONENT_TYPES[analysisResult.suggestedTypeKey] && (
+                    <div>
+                      <p className="text-xs text-gray-500">Vorgeschlagener Typ</p>
+                      <p className="text-sm text-gray-900">{COMPONENT_TYPES[analysisResult.suggestedTypeKey].labelDe}</p>
+                    </div>
+                  )}
+                </div>
+
+                {maintenanceSaved ? (
+                  <p className="text-sm text-green-600 text-center">Wartungseintrag gespeichert!</p>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button onClick={saveMaintenance} loading={savingMaintenance} className="flex-1 justify-center">
+                      Als Wartungseintrag speichern
+                    </Button>
+                    <Button variant="secondary" onClick={runAnalysis} loading={analyzing === analysisDoc.storedName}>
+                      Neu analysieren
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -13,13 +13,12 @@ export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   const raw = await prisma.homeComponent.findMany({ orderBy: { createdAt: 'desc' } });
-  const enriched = raw.map((c) =>
-    enrichComponent({
-      ...c,
-      createdAt: c.createdAt.toISOString(),
-      updatedAt: c.updatedAt.toISOString(),
-    })
-  );
+  const rawComponents = raw.map((c) => ({
+    ...c,
+    createdAt: c.createdAt.toISOString(),
+    updatedAt: c.updatedAt.toISOString(),
+  }));
+  const enriched = rawComponents.map(enrichComponent);
 
   const summary = computeReserveSummary(enriched);
   const projection = buildReserveProjection(enriched);
@@ -47,13 +46,13 @@ export default async function DashboardPage() {
       </Card>
 
       {enriched.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
           <Card>
             <div className="mb-4">
               <CardTitle>Reserve-Projektion (30 Jahre)</CardTitle>
-              <p className="text-xs text-gray-400 mt-1">Blau = angesparte Reserve · Rot = Ausgaben-Spitzen</p>
+              <p className="text-xs text-gray-400 mt-1">Blau = Guthaben · Rot = Ausgaben · Klick auf Jahr für Details</p>
             </div>
-            <ReserveChart data={projection} />
+            <ReserveChart data={projection} rawComponents={rawComponents} />
           </Card>
 
           <Card>

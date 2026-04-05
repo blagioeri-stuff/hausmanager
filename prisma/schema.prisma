@@ -42,3 +42,8 @@ model Document {
   sizeBytes   Int
   uploadedAt  DateTime      @default(now())
 }
+
+model Setting {
+  key   String @id
+  value String
+}

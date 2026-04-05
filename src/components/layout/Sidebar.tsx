@@ -22,50 +22,82 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    href: '/einstellungen',
+    label: 'Einstellungen',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-56 shrink-0 bg-white border-r border-gray-100 flex flex-col min-h-screen">
-      <div className="px-5 py-5 border-b border-gray-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-gray-900 leading-tight">Hausmanager</p>
-            <p className="text-xs text-gray-400">Schweiz</p>
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex w-56 shrink-0 bg-white border-r border-gray-100 flex-col min-h-screen">
+        <div className="px-5 py-5 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 leading-tight">Hausmanager</p>
+              <p className="text-xs text-gray-400">Schweiz</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+        <nav className="flex-1 px-3 py-4 space-y-0.5">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+              >
+                <span className={isActive ? 'text-blue-600' : 'text-gray-400'}>{item.icon}</span>
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="px-5 py-4 border-t border-gray-100">
+          <p className="text-xs text-gray-400">Hausmanager v1.0</p>
+        </div>
+      </aside>
+
+      {/* Mobile bottom navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition-colors ${
+                isActive ? 'text-blue-600' : 'text-gray-500 hover:text-gray-900'
               }`}
             >
-              <span className={isActive ? 'text-blue-600' : 'text-gray-400'}>{item.icon}</span>
-              {item.label}
+              <span>{item.icon}</span>
+              <span>{item.label}</span>
             </Link>
           );
         })}
       </nav>
-
-      <div className="px-5 py-4 border-t border-gray-100">
-        <p className="text-xs text-gray-400">Hausmanager v1.0</p>
-      </div>
-    </aside>
+    </>
   );
 }

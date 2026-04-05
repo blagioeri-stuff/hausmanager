@@ -86,7 +86,7 @@ export default async function KomponentDetailPage({ params }: { params: Promise<
         <Card className="text-center">
           <p className="text-xs text-gray-500 mb-1">Jährl. Rücklage</p>
           <p className="text-lg font-bold text-blue-600">{formatChf(component.annualSavingsChf)}</p>
-          <p className="text-xs text-gray-400">pro Jahr</p>
+          <p className="text-xs text-gray-400">{formatChf(component.annualSavingsChf / 12)} / Monat</p>
         </Card>
       </div>
 
@@ -125,11 +125,18 @@ export default async function KomponentDetailPage({ params }: { params: Promise<
           </div>
           <div>
             <dt className="text-gray-500">Jährliche Rücklage</dt>
-            <dd className="font-semibold text-blue-600">{formatChf(component.annualSavingsChf)}</dd>
+            <dd className="font-semibold text-blue-600">
+              {formatChf(component.annualSavingsChf)}
+              <span className="block text-xs font-normal text-gray-400">{formatChf(component.annualSavingsChf / 12)} / Monat</span>
+            </dd>
           </div>
           <div>
             <dt className="text-gray-500">Noch benötigte Reserve</dt>
             <dd className="font-medium text-gray-900">{formatChf(component.totalReserveNeededChf)}</dd>
+          </div>
+          <div>
+            <dt className="text-gray-500">SOLL-Reserve heute</dt>
+            <dd className="font-medium text-amber-600">{formatChf(component.sollReserveChf)}</dd>
           </div>
         </dl>
         {component.notes && (

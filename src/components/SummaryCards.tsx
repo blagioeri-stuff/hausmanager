@@ -12,13 +12,13 @@ export function SummaryCards({ summary }: Props) {
       <Card>
         <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Jährl. Rücklage</p>
         <p className="text-2xl font-bold text-blue-600">{formatChf(summary.totalAnnualSavingsChf)}</p>
-        <p className="text-xs text-gray-400 mt-1">pro Jahr zurücklegen</p>
+        <p className="text-xs text-gray-400 mt-1">{formatChf(summary.totalAnnualSavingsChf / 12)} / Monat</p>
       </Card>
 
       <Card>
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Gesamtreserve</p>
-        <p className="text-2xl font-bold text-gray-900">{formatChf(summary.totalReserveNeededChf)}</p>
-        <p className="text-xs text-gray-400 mt-1">noch zu sparen</p>
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">SOLL-Reserve heute</p>
+        <p className="text-2xl font-bold text-amber-600">{formatChf(summary.totalSollReserveChf)}</p>
+        <p className="text-xs text-gray-400 mt-1">proportional angespart</p>
       </Card>
 
       <Card>
