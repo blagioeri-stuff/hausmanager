@@ -20,7 +20,7 @@ export default async function DashboardPage() {
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
   }));
-  const enriched = rawComponents.map(enrichComponent);
+  const enriched = rawComponents.map((c) => enrichComponent(c));
 
   const summary = computeReserveSummary(enriched);
   const projection = buildReserveProjection(enriched);
