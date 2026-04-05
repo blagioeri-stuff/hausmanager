@@ -34,7 +34,12 @@ const navItems = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  version?: string;
+  installedAt?: string;
+}
+
+export function Sidebar({ version, installedAt }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -76,7 +81,10 @@ export function Sidebar() {
         </nav>
 
         <div className="px-5 py-4 border-t border-gray-100">
-          <p className="text-xs text-gray-400">Hausmanager v1.0</p>
+          <p className="text-xs font-medium text-gray-400">v{version ?? '—'}</p>
+          {installedAt && (
+            <p className="text-xs text-gray-300 mt-0.5">Installiert: {installedAt}</p>
+          )}
         </div>
       </aside>
 

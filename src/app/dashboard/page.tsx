@@ -3,15 +3,15 @@ import { enrichComponent, computeReserveSummary, buildReserveProjection } from '
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SummaryCards } from '@/components/SummaryCards';
 import { StatusGrid } from '@/components/charts/StatusGrid';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import { Card, CardTitle } from '@/components/ui/Card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 
-const ReserveChart = dynamic(() => import('@/components/charts/ReserveChart').then(m => m.ReserveChart), { ssr: false });
-const AnnualCostChart = dynamic(() => import('@/components/charts/AnnualCostChart').then(m => m.AnnualCostChart), { ssr: false });
-
 export const dynamic = 'force-dynamic';
+
+const ReserveChart = nextDynamic(() => import('@/components/charts/ReserveChart').then(m => m.ReserveChart), { ssr: false });
+const AnnualCostChart = nextDynamic(() => import('@/components/charts/AnnualCostChart').then(m => m.AnnualCostChart), { ssr: false });
 
 export default async function DashboardPage() {
   const raw = await prisma.homeComponent.findMany({ orderBy: { createdAt: 'desc' } });
