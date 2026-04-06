@@ -138,6 +138,18 @@ export default async function KomponentDetailPage({ params }: { params: Promise<
             <dt className="text-gray-500">SOLL-Reserve heute</dt>
             <dd className="font-medium text-amber-600">{formatChf(component.sollReserveChf)}</dd>
           </div>
+          {component.plannedRenovationYear !== null && (
+            <div>
+              <dt className="text-gray-500">Geplantes Renovationsjahr</dt>
+              <dd className="font-medium text-gray-900">{component.plannedRenovationYear}</dd>
+            </div>
+          )}
+          {component.plannedRenovationCostChf !== null && (
+            <div>
+              <dt className="text-gray-500">Geplante Kosten</dt>
+              <dd className="font-medium text-gray-900">{formatChf(component.plannedRenovationCostChf)}</dd>
+            </div>
+          )}
         </dl>
         {component.notes && (
           <div className="mt-4 pt-4 border-t border-gray-100">
