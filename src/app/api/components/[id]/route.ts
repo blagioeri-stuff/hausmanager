@@ -46,8 +46,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       data: parsed.data,
     });
   } catch (err) {
-    console.error('Prisma update error:', err);
-    return NextResponse.json({ error: 'Datenbankfehler beim Speichern' }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Prisma update error:', message);
+    return NextResponse.json({ error: `DB: ${message}` }, { status: 500 });
   }
 
   const enriched = enrichComponent({

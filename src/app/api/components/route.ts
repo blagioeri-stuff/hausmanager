@@ -47,8 +47,9 @@ export async function POST(request: Request) {
       },
     });
   } catch (err) {
-    console.error('Prisma create error:', err);
-    return NextResponse.json({ error: 'Datenbankfehler beim Erstellen' }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Prisma create error:', message);
+    return NextResponse.json({ error: `DB: ${message}` }, { status: 500 });
   }
 
   const enriched = enrichComponent({
