@@ -81,7 +81,15 @@ export function ComponentForm({ component }: Props) {
           notes: data.notes || null,
         }),
       });
-      if (!res.ok) throw new Error('Fehler beim Speichern');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        const fieldErrors = errData?.error?.fieldErrors as Record<string, string[]> | undefined;
+        if (fieldErrors) {
+          const first = Object.entries(fieldErrors)[0];
+          throw new Error(`${first[0]}: ${first[1][0]}`);
+        }
+        throw new Error(typeof errData?.error === 'string' ? errData.error : 'Fehler beim Speichern');
+      }
       router.push('/komponenten');
       router.refresh();
     } catch (e) {

@@ -32,18 +32,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const component = await prisma.homeComponent.create({
-    data: {
-      name: parsed.data.name,
-      typeKey: parsed.data.typeKey,
-      buildYear: parsed.data.buildYear,
-      customCostChf: parsed.data.customCostChf ?? null,
-      customLifetimeYrs: parsed.data.customLifetimeYrs ?? null,
-      plannedRenovationYear: parsed.data.plannedRenovationYear ?? null,
-      plannedRenovationCostChf: parsed.data.plannedRenovationCostChf ?? null,
-      notes: parsed.data.notes ?? null,
-    },
-  });
+  let component;
+  try {
+    component = await prisma.homeComponent.create({
+      data: {
+        name: parsed.data.name,
+        typeKey: parsed.data.typeKey,
+        buildYear: parsed.data.buildYear,
+        customCostChf: parsed.data.customCostChf ?? null,
+        customLifetimeYrs: parsed.data.customLifetimeYrs ?? null,
+        plannedRenovationYear: parsed.data.plannedRenovationYear ?? null,
+        plannedRenovationCostChf: parsed.data.plannedRenovationCostChf ?? null,
+        notes: parsed.data.notes ?? null,
+      },
+    });
+  } catch (err) {
+    console.error('Prisma create error:', err);
+    return NextResponse.json({ error: 'Datenbankfehler beim Erstellen' }, { status: 500 });
+  }
 
   const enriched = enrichComponent({
     ...component,

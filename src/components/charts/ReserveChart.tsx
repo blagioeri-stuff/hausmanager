@@ -35,7 +35,8 @@ function formatChf(n: number) {
 const SERIES_LABELS: Record<string, string> = {
   istBalance: 'IST-Rücklagen',
   sollBalance: 'SOLL-Rücklagen',
-  expenditure: 'Ausgaben',
+  expenditurePlanned: 'Ausgaben (geplant)',
+  expenditureCalculated: 'Ausgaben (berechnet)',
 };
 
 type VisibleKey = 'istBalance' | 'sollBalance' | 'expenditure';
@@ -62,24 +63,45 @@ function CustomTooltip({
   const expenditureRaw = label ? getExpenditureComponentsForYear(rawComponents, label) : [];
   const expenditureEnriched = expenditureRaw.map((c) => enrichComponentAtYear(c, label!));
 
+  // Merge the two expenditure series into one tooltip entry
+  const mergedPayload: Array<{ name: string; value: number; color: string }> = [];
+  let expenditureTotal = 0;
+  for (const p of payload) {
+    if (p.name === 'expenditurePlanned' || p.name === 'expenditureCalculated') {
+      expenditureTotal += p.value;
+    } else {
+      mergedPayload.push(p);
+    }
+  }
+  if (expenditureTotal > 0) {
+    mergedPayload.unshift({ name: 'expenditure', value: expenditureTotal, color: '#ef4444' });
+  }
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 text-sm min-w-[200px]">
       <p className="font-semibold text-gray-900 mb-1">
         {label}{' '}
         <span className="text-xs text-gray-400 font-normal">(klicken für Details)</span>
       </p>
-      {payload.map((p) => (
+      {mergedPayload.map((p) => (
         <div key={p.name}>
           <p style={{ color: p.color }}>
             {SERIES_LABELS[p.name] ?? p.name}: {formatChf(p.value)}
           </p>
           {p.name === 'expenditure' && expenditureEnriched.length > 0 && (
             <ul className="mt-0.5 ml-2 space-y-0.5">
-              {expenditureEnriched.map((c) => (
-                <li key={c.id} className="text-xs text-gray-500">
-                  → {c.name} ({formatChf(c.effectiveCostChf)})
-                </li>
-              ))}
+              {expenditureEnriched.map((c) => {
+                const isPlanned = c.plannedRenovationYear !== null ||
+                  rawComponents.find(r => r.id === c.id)?.plannedRenovationYear !== null;
+                return (
+                  <li key={c.id} className="text-xs text-gray-500">
+                    → {c.name} ({formatChf(c.effectiveCostChf)}){isPlanned ? '' : ' *'}
+                  </li>
+                );
+              })}
+              {expenditureEnriched.some(c => rawComponents.find(r => r.id === c.id)?.plannedRenovationYear === null) && (
+                <li className="text-xs text-gray-400 mt-1">* = berechnetes Datum</li>
+              )}
             </ul>
           )}
         </div>
@@ -96,6 +118,13 @@ export function ReserveChart({ data, rawComponents = [], selectedYear, onYearSel
     sollBalance: true,
     expenditure: true,
   });
+
+  // Compute Y-axis domain from actual data to avoid excessive negative space
+  const allValues = filtered.flatMap((d) => [d.istBalance, d.sollBalance]);
+  const dataMin = Math.min(0, ...allValues);
+  const dataMax = Math.max(...allValues, ...filtered.map(d => d.expenditure));
+  const yMin = dataMin < 0 ? Math.floor(dataMin / 10000) * 10000 : 0;
+  const yMax = Math.ceil(dataMax / 10000) * 10000;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function handleClick(chartData: any) {
@@ -141,7 +170,12 @@ export function ReserveChart({ data, rawComponents = [], selectedYear, onYearSel
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-            <YAxis tickFormatter={formatChfK} tick={{ fontSize: 11 }} width={50} />
+            <YAxis
+              tickFormatter={formatChfK}
+              tick={{ fontSize: 11 }}
+              width={50}
+              domain={[yMin, yMax]}
+            />
             <Tooltip content={<CustomTooltip rawComponents={rawComponents} />} />
             <ReferenceLine
               x={currentYear}
@@ -153,7 +187,25 @@ export function ReserveChart({ data, rawComponents = [], selectedYear, onYearSel
               <ReferenceLine x={selectedYear} stroke="#6366f1" strokeWidth={2} />
             )}
             <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="2 2" />
-            <Bar dataKey="expenditure" fill="#f87171" opacity={0.7} name="expenditure" barSize={12} hide={!visible.expenditure} />
+            {/* Stacked expenditure bars: planned (bottom, solid red) + calculated (top, light red) */}
+            <Bar
+              dataKey="expenditurePlanned"
+              stackId="exp"
+              fill="#ef4444"
+              opacity={0.85}
+              name="expenditurePlanned"
+              barSize={12}
+              hide={!visible.expenditure}
+            />
+            <Bar
+              dataKey="expenditureCalculated"
+              stackId="exp"
+              fill="#fca5a5"
+              opacity={0.85}
+              name="expenditureCalculated"
+              barSize={12}
+              hide={!visible.expenditure}
+            />
             <Area
               type="monotone"
               dataKey="istBalance"

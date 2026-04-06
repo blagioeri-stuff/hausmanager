@@ -39,10 +39,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const component = await prisma.homeComponent.update({
-    where: { id },
-    data: parsed.data,
-  });
+  let component;
+  try {
+    component = await prisma.homeComponent.update({
+      where: { id },
+      data: parsed.data,
+    });
+  } catch (err) {
+    console.error('Prisma update error:', err);
+    return NextResponse.json({ error: 'Datenbankfehler beim Speichern' }, { status: 500 });
+  }
 
   const enriched = enrichComponent({
     ...component,

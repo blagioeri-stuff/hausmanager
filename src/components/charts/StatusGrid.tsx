@@ -76,10 +76,14 @@ export function StatusGrid({ components }: Props) {
                   </div>
                 </td>
                 <td className="py-2.5 pr-4 text-right whitespace-nowrap">
+                  <span className="text-xs text-gray-400">Zuletzt: {c.buildYear}</span>
+                  <br />
                   {c.yearsRemaining <= 0 ? (
                     <span className="text-red-600 font-medium text-xs">Fällig!</span>
+                  ) : c.plannedRenovationYear !== null ? (
+                    <span className="text-gray-900 text-sm font-medium">{c.replacementYear} <span className="text-xs text-gray-400">({c.yearsRemaining} J.)</span></span>
                   ) : (
-                    <span className="text-gray-700">{c.replacementYear} <span className="text-xs text-gray-400">({c.yearsRemaining} J.)</span></span>
+                    <span className="text-gray-400 text-sm italic">{c.replacementYear} <span className="text-xs">({c.yearsRemaining} J.)</span></span>
                   )}
                 </td>
                 <td className="py-2.5 pr-4 text-right hidden md:table-cell whitespace-nowrap">

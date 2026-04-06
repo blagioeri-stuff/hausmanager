@@ -44,6 +44,8 @@ export interface ReserveProjectionRow {
   year: number;
   accumulated: number;
   expenditure: number;
+  expenditurePlanned: number;   // user-entered plannedRenovationYear
+  expenditureCalculated: number; // derived from buildYear + lifetime
   balance: number;
   runningBalance: number;
   sollBalance: number;

@@ -148,10 +148,14 @@ export function buildReserveProjection(
 
   const rawComponents = enriched as unknown as RawComponent[];
 
-  const expendituresByYear = new Map<number, number>();
+  // Split expenditures into user-planned vs lifetime-calculated per year
+  const plannedByYear = new Map<number, number>();
+  const calculatedByYear = new Map<number, number>();
   for (const c of enriched) {
-    const existing = expendituresByYear.get(c.replacementYear) ?? 0;
-    expendituresByYear.set(c.replacementYear, existing + c.effectiveCostChf);
+    const isPlanned = c.plannedRenovationYear !== null;
+    const target = isPlanned ? plannedByYear : calculatedByYear;
+    const existing = target.get(c.replacementYear) ?? 0;
+    target.set(c.replacementYear, existing + c.effectiveCostChf);
   }
 
   const rows: ReserveProjectionRow[] = [];
@@ -161,7 +165,9 @@ export function buildReserveProjection(
 
   for (let i = 0; i <= horizonYears; i++) {
     const year = currentYear + i;
-    const expenditure = expendituresByYear.get(year) ?? 0;
+    const expenditurePlanned = plannedByYear.get(year) ?? 0;
+    const expenditureCalculated = calculatedByYear.get(year) ?? 0;
+    const expenditure = expenditurePlanned + expenditureCalculated;
     const accumulated = Math.round(annualTotal * i);
     cumulativeExpenditure += expenditure;
     const balance = accumulated - cumulativeExpenditure;
@@ -180,6 +186,8 @@ export function buildReserveProjection(
       year,
       accumulated,
       expenditure: Math.round(expenditure),
+      expenditurePlanned: Math.round(expenditurePlanned),
+      expenditureCalculated: Math.round(expenditureCalculated),
       balance: Math.round(balance),
       runningBalance: Math.round(runningBalance),
       sollBalance,
