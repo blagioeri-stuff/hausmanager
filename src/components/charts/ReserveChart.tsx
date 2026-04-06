@@ -14,13 +14,13 @@ import {
   ReferenceLine,
 } from 'recharts';
 import type { ReserveProjectionRow, RawComponent } from '@/types';
-import { enrichComponentAtYear } from '@/lib/calculations';
-import { Modal } from '@/components/ui/Modal';
-import { Badge } from '@/components/ui/Badge';
+import { enrichComponentAtYear, getExpenditureComponentsForYear } from '@/lib/calculations';
 
 interface Props {
   data: ReserveProjectionRow[];
   rawComponents?: RawComponent[];
+  selectedYear?: number | null;
+  onYearSelect?: (year: number) => void;
 }
 
 function formatChfK(value: number) {
@@ -31,8 +31,6 @@ function formatChfK(value: number) {
 function formatChf(n: number) {
   return new Intl.NumberFormat('de-CH', { style: 'currency', currency: 'CHF', maximumFractionDigits: 0 }).format(n);
 }
-
-const STATUS_LABEL: Record<string, string> = { green: 'Gut', yellow: 'Mittel', red: 'Kritisch' };
 
 const SERIES_LABELS: Record<string, string> = {
   istBalance: 'IST-Rücklagen',
@@ -61,11 +59,8 @@ function CustomTooltip({
 }) {
   if (!active || !payload?.length) return null;
 
-  const expendureComponents = label
-    ? rawComponents
-        .map((c) => enrichComponentAtYear(c, label))
-        .filter((c) => c.replacementYear === label)
-    : [];
+  const expenditureRaw = label ? getExpenditureComponentsForYear(rawComponents, label) : [];
+  const expenditureEnriched = expenditureRaw.map((c) => enrichComponentAtYear(c, label!));
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 text-sm min-w-[200px]">
@@ -78,9 +73,9 @@ function CustomTooltip({
           <p style={{ color: p.color }}>
             {SERIES_LABELS[p.name] ?? p.name}: {formatChf(p.value)}
           </p>
-          {p.name === 'expenditure' && expendureComponents.length > 0 && (
+          {p.name === 'expenditure' && expenditureEnriched.length > 0 && (
             <ul className="mt-0.5 ml-2 space-y-0.5">
-              {expendureComponents.map((c) => (
+              {expenditureEnriched.map((c) => (
                 <li key={c.id} className="text-xs text-gray-500">
                   → {c.name} ({formatChf(c.effectiveCostChf)})
                 </li>
@@ -93,10 +88,9 @@ function CustomTooltip({
   );
 }
 
-export function ReserveChart({ data, rawComponents = [] }: Props) {
+export function ReserveChart({ data, rawComponents = [], selectedYear, onYearSelect }: Props) {
   const currentYear = new Date().getFullYear();
   const filtered = data.filter((d) => d.year <= currentYear + 15);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [visible, setVisible] = useState<Record<VisibleKey, boolean>>({
     istBalance: true,
     sollBalance: true,
@@ -106,16 +100,12 @@ export function ReserveChart({ data, rawComponents = [] }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function handleClick(chartData: any) {
     const year = chartData?.activeLabel;
-    if (year) setSelectedYear(Number(year));
+    if (year && onYearSelect) onYearSelect(Number(year));
   }
 
   function toggle(key: VisibleKey) {
     setVisible((prev) => ({ ...prev, [key]: !prev[key] }));
   }
-
-  const yearComponents = selectedYear
-    ? rawComponents.map((c) => enrichComponentAtYear(c, selectedYear))
-    : [];
 
   return (
     <>
@@ -159,6 +149,9 @@ export function ReserveChart({ data, rawComponents = [] }: Props) {
               strokeDasharray="4 4"
               label={{ value: 'Heute', fontSize: 11, fill: '#6366f1' }}
             />
+            {selectedYear && selectedYear !== currentYear && (
+              <ReferenceLine x={selectedYear} stroke="#6366f1" strokeWidth={2} />
+            )}
             <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="2 2" />
             <Bar dataKey="expenditure" fill="#f87171" opacity={0.7} name="expenditure" barSize={12} hide={!visible.expenditure} />
             <Area
@@ -184,55 +177,6 @@ export function ReserveChart({ data, rawComponents = [] }: Props) {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-
-      <Modal
-        open={selectedYear !== null}
-        onClose={() => setSelectedYear(null)}
-        title={`Komponentenstatus ${selectedYear}`}
-      >
-        {selectedYear && (
-          <div className="space-y-3">
-            <p className="text-xs text-gray-500">Zustand aller Komponenten im Jahr {selectedYear}</p>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
-                  <th className="pb-2 font-medium">Komponente</th>
-                  <th className="pb-2 font-medium text-right">Alter</th>
-                  <th className="pb-2 font-medium text-right">SOLL-Reserve</th>
-                  <th className="pb-2 font-medium text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {yearComponents
-                  .sort((a, b) => {
-                    const order = { red: 0, yellow: 1, green: 2 };
-                    return order[a.statusColor] - order[b.statusColor];
-                  })
-                  .map((c) => (
-                    <tr key={c.id}>
-                      <td className="py-2">
-                        <p className="font-medium text-gray-900">{c.name}</p>
-                        <p className="text-xs text-gray-400">{c.typeDef.labelDe}</p>
-                      </td>
-                      <td className="py-2 text-right text-gray-700">
-                        {c.ageYears} J.
-                        {c.replacementYear === selectedYear && (
-                          <span className="block text-xs text-red-500 font-medium">Erneuerung!</span>
-                        )}
-                      </td>
-                      <td className="py-2 text-right text-amber-600 font-medium">
-                        {formatChf(c.sollReserveChf)}
-                      </td>
-                      <td className="py-2 text-center">
-                        <Badge color={c.statusColor}>{STATUS_LABEL[c.statusColor]}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Modal>
     </>
   );
 }

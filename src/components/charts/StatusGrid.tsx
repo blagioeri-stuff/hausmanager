@@ -9,11 +9,11 @@ interface Props {
   components: EnrichedComponent[];
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  green: 'Gut',
-  yellow: 'Mittel',
-  red: 'Kritisch',
-};
+function statusLabel(c: EnrichedComponent): string {
+  if (c.yearsRemaining <= 0) return 'Lebensdauer erreicht';
+  if (c.yearsRemaining <= 10) return `In ${c.yearsRemaining} J. fällig`;
+  return `Erneuerung ${c.replacementYear}`;
+}
 
 const BAR_COLOR: Record<string, string> = {
   green: 'bg-green-500',
@@ -87,7 +87,7 @@ export function StatusGrid({ components }: Props) {
                   <span className="block text-xs text-gray-400">{formatChf(c.annualSavingsChf / 12)}/Mt.</span>
                 </td>
                 <td className="py-2.5 text-center">
-                  <Badge color={c.statusColor}>{STATUS_LABEL[c.statusColor]}</Badge>
+                  <Badge color={c.statusColor}>{statusLabel(c)}</Badge>
                 </td>
               </tr>
             );

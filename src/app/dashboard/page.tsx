@@ -2,7 +2,6 @@ import { prisma } from '@/lib/db';
 import { enrichComponent, computeReserveSummary, buildReserveProjection } from '@/lib/calculations';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SummaryCards } from '@/components/SummaryCards';
-import { StatusGrid } from '@/components/charts/StatusGrid';
 import nextDynamic from 'next/dynamic';
 import { Card, CardTitle } from '@/components/ui/Card';
 import Link from 'next/link';
@@ -10,7 +9,10 @@ import { Button } from '@/components/ui/Button';
 
 export const dynamic = 'force-dynamic';
 
-const ReserveChart = nextDynamic(() => import('@/components/charts/ReserveChart').then(m => m.ReserveChart), { ssr: false });
+const DashboardCharts = nextDynamic(
+  () => import('@/components/DashboardCharts').then((m) => m.DashboardCharts),
+  { ssr: false }
+);
 
 export default async function DashboardPage() {
   const [raw, istSetting, monthlySetting] = await Promise.all([
@@ -46,23 +48,11 @@ export default async function DashboardPage() {
 
       <SummaryCards summary={summary} />
 
-      {enriched.length > 0 && (
-        <Card>
-          <div className="mb-4">
-            <CardTitle>Reserve-Projektion (15 Jahre)</CardTitle>
-            <p className="text-xs text-gray-400 mt-1">Grün = IST-Rücklage · Amber = SOLL · Rot = Ausgaben · Klick auf Jahr für Details</p>
-          </div>
-          <ReserveChart data={projection} rawComponents={rawComponents} />
-        </Card>
-      )}
-
-      <Card>
-        <div className="mb-4">
-          <CardTitle>Komponentenstatus</CardTitle>
-          <p className="text-xs text-gray-400 mt-1">Lebensdauerfortschritt aller Komponenten — Klick auf Name für Details</p>
-        </div>
-        <StatusGrid components={enriched} />
-      </Card>
+      <DashboardCharts
+        rawComponents={rawComponents}
+        projection={projection}
+        enriched={enriched}
+      />
 
       {summary.componentsDueIn10Years.length > 0 && (
         <Card>

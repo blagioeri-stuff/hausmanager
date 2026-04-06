@@ -189,3 +189,23 @@ export function buildReserveProjection(
 
   return rows;
 }
+
+/**
+ * Returns raw components that have an expenditure (replacement) due in the given year.
+ * Correctly handles repeated cycles after the first renovation.
+ */
+export function getExpenditureComponentsForYear(
+  rawComponents: RawComponent[],
+  year: number
+): RawComponent[] {
+  return rawComponents.filter((c) => {
+    const typeDef = COMPONENT_TYPES[c.typeKey];
+    if (!typeDef) return false;
+    const effectiveLifetimeYrs = c.customLifetimeYrs ?? typeDef.defaultLifetimeYrs;
+    const firstReplacementYear =
+      c.plannedRenovationYear ?? (c.buildYear + effectiveLifetimeYrs);
+    if (firstReplacementYear === year) return true;
+    const yearsAfterFirst = year - firstReplacementYear;
+    return yearsAfterFirst > 0 && yearsAfterFirst % effectiveLifetimeYrs === 0;
+  });
+}
