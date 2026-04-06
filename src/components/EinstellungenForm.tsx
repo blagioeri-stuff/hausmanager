@@ -35,6 +35,7 @@ export function EinstellungenForm({ initialSettings }: Props) {
   const [settings, setSettings] = useState<Record<string, string>>(initialSettings);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [testingApi, setTestingApi] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
@@ -45,13 +46,23 @@ export function EinstellungenForm({ initialSettings }: Props) {
 
   async function handleSave() {
     setSaving(true);
+    setSaveError(null);
+    setSaved(false);
     try {
-      await fetch('/api/settings', {
+      const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       });
-      setSaved(true);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        setSaveError(errData?.error ?? `Fehler ${res.status}`);
+        return;
+      }
+      // Hard reload so the page re-fetches from DB (avoids router cache)
+      window.location.href = '/einstellungen';
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Netzwerkfehler');
     } finally {
       setSaving(false);
     }
@@ -200,6 +211,7 @@ export function EinstellungenForm({ initialSettings }: Props) {
           Einstellungen speichern
         </Button>
         {saved && <span className="text-sm text-green-600">Gespeichert.</span>}
+        {saveError && <span className="text-sm text-red-500">Fehler: {saveError}</span>}
       </div>
     </div>
   );

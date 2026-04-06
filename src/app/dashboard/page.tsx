@@ -46,7 +46,7 @@ export default async function DashboardPage() {
         }
       />
 
-      <SummaryCards summary={summary} />
+      <SummaryCards summary={summary} monthlyContributionChf={parseFloat(monthlySetting?.value ?? '0') || 0} />
 
       <DashboardCharts
         rawComponents={rawComponents}

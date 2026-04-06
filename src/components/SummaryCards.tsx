@@ -4,6 +4,7 @@ import type { ReserveSummary } from '@/types';
 
 interface Props {
   summary: ReserveSummary;
+  monthlyContributionChf?: number;
 }
 
 function deckungsgradColor(pct: number): string {
@@ -12,16 +13,21 @@ function deckungsgradColor(pct: number): string {
   return 'text-red-500';
 }
 
-export function SummaryCards({ summary }: Props) {
+export function SummaryCards({ summary, monthlyContributionChf }: Props) {
   const { deckungsgradPct, istReserveChf, totalSollReserveChf } = summary;
   const hasIst = istReserveChf > 0;
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Card>
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Jährl. Rücklage</p>
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Jährl. Rücklage (SOLL)</p>
         <p className="text-2xl font-bold text-blue-600">{formatChf(summary.totalAnnualSavingsChf)}</p>
-        <p className="text-xs text-gray-400 mt-1">{formatChf(summary.totalAnnualSavingsChf / 12)} / Monat</p>
+        <p className="text-xs text-gray-400 mt-1">
+          {formatChf(summary.totalAnnualSavingsChf / 12)} / Monat
+          {monthlyContributionChf != null && monthlyContributionChf > 0 && (
+            <span className="ml-1 text-green-600">· IST: {formatChf(monthlyContributionChf)} / Mt.</span>
+          )}
+        </p>
       </Card>
 
       <Card>
