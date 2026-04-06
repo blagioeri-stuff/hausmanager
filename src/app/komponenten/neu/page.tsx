@@ -8,19 +8,21 @@ import { Card } from '@/components/ui/Card';
 const CURRENT_YEAR = new Date().getFullYear();
 
 const PRESETS = [
-  { name: 'Dach', typeKey: 'roof', buildYear: CURRENT_YEAR - 20, replacementCostChf: 60000 },
-  { name: 'Heizung', typeKey: 'heating', buildYear: CURRENT_YEAR - 10, replacementCostChf: 25000 },
-  { name: 'Fenster', typeKey: 'windows', buildYear: CURRENT_YEAR - 15, replacementCostChf: 30000 },
-  { name: 'Fassade', typeKey: 'facade', buildYear: CURRENT_YEAR - 25, replacementCostChf: 50000 },
-  { name: 'Küche', typeKey: 'kitchen', buildYear: CURRENT_YEAR - 10, replacementCostChf: 35000 },
-  { name: 'Bad/WC', typeKey: 'bathroom', buildYear: CURRENT_YEAR - 15, replacementCostChf: 20000 },
-  { name: 'Elektroanlage', typeKey: 'electrical', buildYear: CURRENT_YEAR - 20, replacementCostChf: 15000 },
-  { name: 'Wasserinstallation', typeKey: 'plumbing', buildYear: CURRENT_YEAR - 20, replacementCostChf: 12000 },
-  { name: 'Garagentor', typeKey: 'garage_door', buildYear: CURRENT_YEAR - 10, replacementCostChf: 4000 },
-  { name: 'Aussenanlage', typeKey: 'outdoor', buildYear: CURRENT_YEAR - 10, replacementCostChf: 15000 },
+  { name: 'Dach', typeKey: 'dach', buildYear: CURRENT_YEAR - 20, replacementCostChf: 50000 },
+  { name: 'Heizung', typeKey: 'heizung', buildYear: CURRENT_YEAR - 10, replacementCostChf: 25000 },
+  { name: 'Fenster', typeKey: 'fenster', buildYear: CURRENT_YEAR - 15, replacementCostChf: 25000 },
+  { name: 'Fassade', typeKey: 'fassade', buildYear: CURRENT_YEAR - 25, replacementCostChf: 40000 },
+  { name: 'Küche', typeKey: 'kueche', buildYear: CURRENT_YEAR - 10, replacementCostChf: 30000 },
+  { name: 'Badezimmer', typeKey: 'badezimmer', buildYear: CURRENT_YEAR - 15, replacementCostChf: 20000 },
+  { name: 'Elektroinstallation', typeKey: 'elektro', buildYear: CURRENT_YEAR - 20, replacementCostChf: 20000 },
+  { name: 'Sanitärinstallation', typeKey: 'sanitaer', buildYear: CURRENT_YEAR - 20, replacementCostChf: 15000 },
+  { name: 'Garten & Aussenanlage', typeKey: 'garten', buildYear: CURRENT_YEAR - 10, replacementCostChf: 20000 },
+  { name: 'Garage / Carport', typeKey: 'garage', buildYear: CURRENT_YEAR - 15, replacementCostChf: 30000 },
+  { name: 'Bodenbeläge', typeKey: 'bodenbelaege', buildYear: CURRENT_YEAR - 10, replacementCostChf: 15000 },
+  { name: 'Malerarbeiten Innen', typeKey: 'maler_innen', buildYear: CURRENT_YEAR - 8, replacementCostChf: 8000 },
 ];
 
-interface PresetValues {
+interface Prefill {
   name?: string;
   typeKey?: string;
   buildYear?: number;
@@ -28,10 +30,12 @@ interface PresetValues {
 }
 
 export default function NeueKomponentePage() {
-  const [prefill, setPrefill] = useState<PresetValues | undefined>(undefined);
+  const [prefill, setPrefill] = useState<Prefill | undefined>(undefined);
+  const [formKey, setFormKey] = useState(0);
 
   function applyPreset(p: typeof PRESETS[0]) {
-    setPrefill({ ...p });
+    setPrefill({ name: p.name, typeKey: p.typeKey, buildYear: p.buildYear, replacementCostChf: p.replacementCostChf });
+    setFormKey((k) => k + 1);
   }
 
   return (
@@ -41,7 +45,6 @@ export default function NeueKomponentePage() {
         subtitle="Hauskomponente erfassen und Rücklage berechnen"
       />
 
-      {/* Schnellerfassung */}
       <Card>
         <p className="text-xs font-medium text-gray-500 mb-3">Schnellerfassung — häufige Komponenten</p>
         <div className="flex flex-wrap gap-2">
@@ -55,10 +58,15 @@ export default function NeueKomponentePage() {
             </button>
           ))}
         </div>
+        {prefill && (
+          <p className="mt-2 text-xs text-blue-600">
+            Vorlage geladen: <strong>{prefill.name}</strong> — Formular unten anpassen und speichern.
+          </p>
+        )}
       </Card>
 
       <Card>
-        <ComponentForm key={JSON.stringify(prefill)} prefill={prefill} />
+        <ComponentForm key={formKey} prefill={prefill} />
       </Card>
     </div>
   );

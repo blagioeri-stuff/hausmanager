@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { COMPONENT_TYPES } from '@/lib/component-types';
 
 const SYSTEM_PROMPT = `Du bist ein Experte für Schweizer Immobilien und Gebäudeunterhalt.
-Analysiere das folgende Dokument und extrahiere alle Gebäudekomponenten (Küche, Heizung, Dach, Fenster, Badezimmer, etc.).
+Analysiere den folgenden Inhalt und extrahiere alle Gebäudekomponenten (Küche, Heizung, Dach, Fenster, Badezimmer, etc.).
 
 Für jede Komponente, die du findest, gib zurück:
 - name: Bezeichnung (z.B. "Badezimmer OG", "Heizung", "Dach")
@@ -22,77 +22,118 @@ Antworte NUR mit einem JSON-Objekt in folgendem Format, ohne zusätzlichen Text:
 
 Wenn keine Komponenten gefunden werden, gib {"components": []} zurück.`;
 
+const TEXT_MIME_TYPES = [
+  'text/plain', 'text/csv', 'text/markdown', 'text/html', 'text/xml',
+  'application/json', 'application/xml',
+];
+
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const file = formData.get('file') as File | null;
-    const instruction = (formData.get('instruction') as string) || '';
+    const contentType = req.headers.get('content-type') ?? '';
+    let fileBuffer: Buffer | null = null;
+    let mimeType = '';
+    let fileName = '';
+    let instruction = '';
+    let textContent: string | null = null;
 
-    if (!file) {
-      return NextResponse.json({ error: 'Keine Datei hochgeladen' }, { status: 400 });
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      const file = formData.get('file') as File | null;
+      instruction = (formData.get('instruction') as string) || '';
+      textContent = (formData.get('textContent') as string) || null;
+
+      if (file && file.size > 0) {
+        const arrayBuffer = await file.arrayBuffer();
+        fileBuffer = Buffer.from(arrayBuffer);
+        mimeType = file.type;
+        fileName = file.name;
+      }
+    } else {
+      // JSON body with text content
+      const body = await req.json();
+      instruction = body.instruction || '';
+      textContent = body.textContent || null;
     }
 
-    // Get API key
-    const apiKey =
-      process.env.CLAUDE_API_KEY ||
-      (await prisma.setting.findUnique({ where: { key: 'claudeApiKey' } }))?.value;
+    // Need either a file or text content
+    if (!fileBuffer && !textContent) {
+      return NextResponse.json({ error: 'Keine Datei oder Text angegeben' }, { status: 400 });
+    }
+
+    // Get API key with trim check
+    const dbKey = (await prisma.setting.findUnique({ where: { key: 'claudeApiKey' } }))?.value?.trim();
+    const apiKey = process.env.CLAUDE_API_KEY?.trim() || dbKey;
     if (!apiKey) {
-      return NextResponse.json({ error: 'Kein Claude API-Key konfiguriert' }, { status: 400 });
+      return NextResponse.json({ error: 'Kein Claude API-Key konfiguriert. Bitte in den Einstellungen speichern.' }, { status: 400 });
     }
 
     const model =
-      (await prisma.setting.findUnique({ where: { key: 'claudeModel' } }))?.value ??
+      (await prisma.setting.findUnique({ where: { key: 'claudeModel' } }))?.value?.trim() ??
       'claude-sonnet-4-6';
 
     const client = new Anthropic({ apiKey });
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
     let messageContent: Anthropic.MessageParam['content'];
+    const userText = instruction
+      ? `Anweisung: ${instruction}\n\nExtrahiere alle Gebäudekomponenten als JSON.`
+      : 'Extrahiere alle Gebäudekomponenten als JSON.';
 
-    if (file.type === 'application/pdf') {
-      // Use PDF document block (Claude native PDF support)
-      const base64 = buffer.toString('base64');
-      messageContent = [
-        {
-          type: 'document',
-          source: {
-            type: 'base64',
-            media_type: 'application/pdf',
-            data: base64,
+    if (textContent) {
+      // Direct text input
+      messageContent = `${userText}\n\nInhalt:\n${textContent}`;
+    } else if (fileBuffer) {
+      if (mimeType === 'application/pdf') {
+        // Native PDF support via document block
+        messageContent = [
+          {
+            type: 'document',
+            source: {
+              type: 'base64',
+              media_type: 'application/pdf',
+              data: fileBuffer.toString('base64'),
+            },
+          } as Anthropic.DocumentBlockParam,
+          { type: 'text', text: userText },
+        ];
+      } else if (mimeType.startsWith('image/')) {
+        const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        const imageMime = validImageTypes.includes(mimeType) ? mimeType : 'image/jpeg';
+        messageContent = [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: imageMime as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+              data: fileBuffer.toString('base64'),
+            },
           },
-        } as Anthropic.DocumentBlockParam,
-        {
-          type: 'text',
-          text: instruction
-            ? `Dokument analysiert. Zusätzliche Anweisung: ${instruction}\n\nExtrahiere alle Gebäudekomponenten als JSON.`
-            : 'Extrahiere alle Gebäudekomponenten als JSON.',
-        },
-      ];
-    } else if (file.type.startsWith('image/')) {
-      const base64 = buffer.toString('base64');
-      messageContent = [
-        {
-          type: 'image',
-          source: {
-            type: 'base64',
-            media_type: file.type as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
-            data: base64,
-          },
-        },
-        {
-          type: 'text',
-          text: instruction
-            ? `Bild analysiert. Zusätzliche Anweisung: ${instruction}\n\nExtrahiere alle Gebäudekomponenten als JSON.`
-            : 'Extrahiere alle Gebäudekomponenten als JSON.',
-        },
-      ];
+          { type: 'text', text: userText },
+        ];
+      } else if (TEXT_MIME_TYPES.includes(mimeType) || fileName.match(/\.(txt|csv|md|json|xml|html)$/i)) {
+        // Text-based file
+        const text = fileBuffer.toString('utf-8');
+        messageContent = `${userText}\n\nDateiinhalt (${fileName}):\n${text.slice(0, 50000)}`;
+      } else {
+        // Unsupported format — try as text anyway, with warning
+        try {
+          const text = fileBuffer.toString('utf-8');
+          // Simple heuristic: if mostly printable chars, treat as text
+          const printable = text.split('').filter((c) => c.charCodeAt(0) >= 32 || c === '\n' || c === '\r' || c === '\t').length;
+          if (printable / text.length > 0.8) {
+            messageContent = `${userText}\n\nDateiinhalt (${fileName}):\n${text.slice(0, 50000)}`;
+          } else {
+            return NextResponse.json({
+              error: `Dateityp "${mimeType || fileName}" wird nicht direkt unterstützt. Bitte als PDF exportieren oder den Text direkt einfügen.`,
+            }, { status: 400 });
+          }
+        } catch {
+          return NextResponse.json({
+            error: `Dateityp "${mimeType || fileName}" kann nicht gelesen werden. Bitte als PDF exportieren oder den Text direkt einfügen.`,
+          }, { status: 400 });
+        }
+      }
     } else {
-      // Plain text fallback
-      const text = buffer.toString('utf-8');
-      messageContent = instruction
-        ? `${instruction}\n\nDokumentinhalt:\n${text}`
-        : `Dokumentinhalt:\n${text}`;
+      return NextResponse.json({ error: 'Kein Inhalt zum Analysieren' }, { status: 400 });
     }
 
     const response = await client.messages.create({
@@ -104,10 +145,12 @@ export async function POST(req: NextRequest) {
 
     const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
 
-    // Parse JSON from response (strip markdown fences if present)
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return NextResponse.json({ error: 'KI-Antwort konnte nicht verarbeitet werden', raw: rawText }, { status: 500 });
+      return NextResponse.json({
+        error: 'KI-Antwort konnte nicht verarbeitet werden',
+        raw: rawText.slice(0, 500),
+      }, { status: 500 });
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
