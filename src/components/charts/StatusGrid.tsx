@@ -175,12 +175,23 @@ export function StatusGrid({ components }: Props) {
         )}
       </div>
 
-      {/* Result count */}
-      {hasActiveFilters && (
-        <p className="text-xs text-gray-400 mb-2">
-          {filtered.length} von {components.length} Komponenten
+      {/* Result count + CHF sum */}
+      <div className="flex items-center justify-between mb-2">
+        {hasActiveFilters ? (
+          <p className="text-xs text-gray-400">
+            {filtered.length} von {components.length} Komponenten
+          </p>
+        ) : <span />}
+        <p className="text-xs text-gray-500">
+          Summe:{' '}
+          <span className="font-semibold text-blue-700">
+            {formatChf(filtered.reduce((s, c) => s + c.annualSavingsChf, 0))} / Jahr
+          </span>
+          <span className="text-gray-400 ml-1">
+            ({formatChf(filtered.reduce((s, c) => s + c.annualSavingsChf, 0) / 12)} / Mt.)
+          </span>
         </p>
-      )}
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

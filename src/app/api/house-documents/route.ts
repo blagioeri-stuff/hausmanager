@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { ensureUploadDir, getUploadPath, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '@/lib/uploads';
+import { ensureUploadDir, getUploadPath, MAX_FILE_SIZE } from '@/lib/uploads';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs/promises';
 
@@ -44,10 +44,6 @@ export async function POST(req: NextRequest) {
 
       if (!file || file.size === 0) {
         return NextResponse.json({ error: 'Keine Datei erhalten' }, { status: 400 });
-      }
-
-      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-        return NextResponse.json({ error: 'Dateityp nicht erlaubt (nur PDF, Bilder)' }, { status: 400 });
       }
 
       if (file.size > MAX_FILE_SIZE) {

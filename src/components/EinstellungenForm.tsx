@@ -59,6 +59,8 @@ export function EinstellungenForm({ initialSettings, apiKeyViaEnv = false }: Pro
   const [backups, setBackups] = useState<BackupInfo[]>([]);
   const [backupLoading, setBackupLoading] = useState(false);
   const [backupCreating, setBackupCreating] = useState(false);
+  const [backupError, setBackupError] = useState<string | null>(null);
+  const [backupSuccess, setBackupSuccess] = useState(false);
   const [restoreResult, setRestoreResult] = useState<'success' | 'error' | null>(null);
   const [restoringFilename, setRestoringFilename] = useState<string | null>(null);
 
@@ -127,13 +129,23 @@ export function EinstellungenForm({ initialSettings, apiKeyViaEnv = false }: Pro
 
   async function handleCreateBackup() {
     setBackupCreating(true);
+    setBackupError(null);
+    setBackupSuccess(false);
     try {
       const res = await fetch('/api/backup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'create' }),
       });
-      if (res.ok) await loadBackups();
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setBackupSuccess(true);
+        await loadBackups();
+      } else {
+        setBackupError(data.error ?? `Fehler ${res.status}`);
+      }
+    } catch (e) {
+      setBackupError(e instanceof Error ? e.message : 'Netzwerkfehler');
     } finally {
       setBackupCreating(false);
     }
@@ -314,9 +326,13 @@ export function EinstellungenForm({ initialSettings, apiKeyViaEnv = false }: Pro
           )}
         </div>
 
-        <Button variant="secondary" size="sm" onClick={handleCreateBackup} loading={backupCreating}>
-          Jetzt sichern
-        </Button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button variant="secondary" size="sm" onClick={handleCreateBackup} loading={backupCreating}>
+            Jetzt sichern
+          </Button>
+          {backupSuccess && <span className="text-sm text-green-600">Sicherung erstellt.</span>}
+          {backupError && <span className="text-sm text-red-500">{backupError}</span>}
+        </div>
       </Card>
 
       {/* Export */}

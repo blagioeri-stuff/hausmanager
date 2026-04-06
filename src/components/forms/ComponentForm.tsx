@@ -29,14 +29,22 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-interface Props {
-  component?: EnrichedComponent;
+interface Prefill {
+  name?: string;
+  typeKey?: string;
+  buildYear?: number;
+  replacementCostChf?: number;
 }
 
-export function ComponentForm({ component }: Props) {
+interface Props {
+  component?: EnrichedComponent;
+  prefill?: Prefill;
+}
+
+export function ComponentForm({ component, prefill }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [selectedType, setSelectedType] = useState(component?.typeKey ?? '');
+  const [selectedType, setSelectedType] = useState(component?.typeKey ?? prefill?.typeKey ?? '');
 
   const {
     register,
@@ -47,10 +55,10 @@ export function ComponentForm({ component }: Props) {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      name: component?.name ?? '',
-      typeKey: component?.typeKey ?? '',
-      buildYear: component?.buildYear ?? new Date().getFullYear(),
-      customCostChf: component?.customCostChf ?? null,
+      name: component?.name ?? prefill?.name ?? '',
+      typeKey: component?.typeKey ?? prefill?.typeKey ?? '',
+      buildYear: component?.buildYear ?? prefill?.buildYear ?? new Date().getFullYear(),
+      customCostChf: component?.customCostChf ?? prefill?.replacementCostChf ?? null,
       customLifetimeYrs: component?.customLifetimeYrs ?? null,
       plannedRenovationYear: component?.plannedRenovationYear ?? null,
       plannedRenovationCostChf: component?.plannedRenovationCostChf ?? null,

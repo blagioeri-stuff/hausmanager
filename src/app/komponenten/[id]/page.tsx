@@ -26,6 +26,7 @@ export default async function KomponentDetailPage({ params }: { params: Promise<
     include: {
       maintenance: { orderBy: { date: 'desc' } },
       documents: { orderBy: { uploadedAt: 'desc' } },
+      houseDocuments: { orderBy: { uploadedAt: 'desc' } },
     },
   });
 
@@ -164,10 +165,40 @@ export default async function KomponentDetailPage({ params }: { params: Promise<
         <MaintenanceList componentId={id} initialEntries={maintenanceEntries} />
       </Card>
 
-      {/* Documents */}
+      {/* Component-specific documents */}
       <Card>
         <DocumentList componentId={id} initialDocuments={documents} />
       </Card>
+
+      {/* House documents linked to this component */}
+      {raw.houseDocuments.length > 0 && (
+        <Card>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-gray-900">Verknüpfte Hausdokumente</h2>
+            <a href={`/dokumentation?componentId=${id}`} className="text-xs text-blue-600 hover:underline">Alle ansehen →</a>
+          </div>
+          <div className="space-y-2">
+            {raw.houseDocuments.map((d) => (
+              <div key={d.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{d.title}</p>
+                  {d.description && <p className="text-xs text-gray-400 mt-0.5">{d.description}</p>}
+                </div>
+                {(d.storedName || d.externalUrl) && (
+                  <a
+                    href={d.storedName ? `/api/upload/${d.storedName}` : d.externalUrl!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:underline shrink-0"
+                  >
+                    Öffnen
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

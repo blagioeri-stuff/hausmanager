@@ -26,6 +26,13 @@ export async function GET(
     png: 'image/png',
     gif: 'image/gif',
     webp: 'image/webp',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    txt: 'text/plain',
+    csv: 'text/csv',
+    zip: 'application/zip',
   };
   const contentType = mimeTypes[ext ?? ''] ?? 'application/octet-stream';
 

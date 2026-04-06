@@ -131,6 +131,9 @@ export function ChatWidget() {
             {error && (
               <div className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">
                 {error}
+                {error.includes('API-Key') && (
+                  <a href="/einstellungen" className="block mt-1 text-blue-500 underline">→ Zu den Einstellungen</a>
+                )}
               </div>
             )}
             <div ref={bottomRef} />
