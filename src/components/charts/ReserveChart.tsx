@@ -151,7 +151,7 @@ export function ReserveChart({ data, rawComponents = [] }: Props) {
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-            <YAxis tickFormatter={formatChfK} tick={{ fontSize: 11 }} width={50} domain={['auto', 'auto']} />
+            <YAxis tickFormatter={formatChfK} tick={{ fontSize: 11 }} width={50} />
             <Tooltip content={<CustomTooltip rawComponents={rawComponents} />} />
             <ReferenceLine
               x={currentYear}
@@ -160,31 +160,27 @@ export function ReserveChart({ data, rawComponents = [] }: Props) {
               label={{ value: 'Heute', fontSize: 11, fill: '#6366f1' }}
             />
             <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="2 2" />
-            {visible.expenditure && (
-              <Bar dataKey="expenditure" fill="#f87171" opacity={0.7} name="expenditure" barSize={12} />
-            )}
-            {visible.istBalance && (
-              <Area
-                type="monotone"
-                dataKey="istBalance"
-                fill="#bbf7d0"
-                stroke="#16a34a"
-                strokeWidth={2}
-                fillOpacity={0.35}
-                name="istBalance"
-              />
-            )}
-            {visible.sollBalance && (
-              <Line
-                type="monotone"
-                dataKey="sollBalance"
-                stroke="#f59e0b"
-                strokeWidth={2}
-                strokeDasharray="6 3"
-                dot={false}
-                name="sollBalance"
-              />
-            )}
+            <Bar dataKey="expenditure" fill="#f87171" opacity={0.7} name="expenditure" barSize={12} hide={!visible.expenditure} />
+            <Area
+              type="monotone"
+              dataKey="istBalance"
+              fill="#bbf7d0"
+              stroke="#16a34a"
+              strokeWidth={2}
+              fillOpacity={0.35}
+              name="istBalance"
+              hide={!visible.istBalance}
+            />
+            <Line
+              type="monotone"
+              dataKey="sollBalance"
+              stroke="#f59e0b"
+              strokeWidth={2}
+              strokeDasharray="6 3"
+              dot={false}
+              name="sollBalance"
+              hide={!visible.sollBalance}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
