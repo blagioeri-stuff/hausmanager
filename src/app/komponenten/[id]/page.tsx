@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { MaintenanceList } from '@/components/MaintenanceList';
 import { DocumentList } from '@/components/DocumentList';
+import { RenovationButton } from '@/components/RenovationButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -158,6 +159,17 @@ export default async function KomponentDetailPage({ params }: { params: Promise<
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{component.notes}</p>
           </div>
         )}
+      </Card>
+
+      {/* Renovation abgeschlossen */}
+      <Card>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 mb-0.5">Renovation abschliessen</h2>
+            <p className="text-xs text-gray-400">Setzt das Baujahr auf das aktuelle Jahr und erstellt einen Wartungseintrag.</p>
+          </div>
+          <RenovationButton componentId={id} componentName={component.name} />
+        </div>
       </Card>
 
       {/* Maintenance history */}

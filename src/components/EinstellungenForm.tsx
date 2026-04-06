@@ -119,7 +119,20 @@ export function EinstellungenForm({ initialSettings, apiKeyViaEnv = false }: Pro
         body: JSON.stringify({ apiKey: settings.claudeApiKey, model: settings.claudeModel || 'claude-haiku-4-5-20251001' }),
       });
       const data = await res.json();
-      setTestResult(res.ok ? { ok: true, message: 'API-Key funktioniert!' } : { ok: false, message: data.error ?? 'Fehler beim Testen' });
+      if (res.ok) {
+        // Auto-save API key and model to DB immediately on successful test
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            claudeApiKey: settings.claudeApiKey ?? '',
+            claudeModel: settings.claudeModel || 'claude-haiku-4-5-20251001',
+          }),
+        });
+        setTestResult({ ok: true, message: 'API-Key funktioniert und wurde gespeichert!' });
+      } else {
+        setTestResult({ ok: false, message: data.error ?? 'Fehler beim Testen' });
+      }
     } catch {
       setTestResult({ ok: false, message: 'Netzwerkfehler' });
     } finally {
