@@ -91,6 +91,15 @@ export function ComponentForm({ component }: Props) {
         throw new Error(typeof errData?.error === 'string' ? errData.error : 'Fehler beim Speichern');
       }
       const saved = await res.json().catch(() => null);
+      // TEMP DEBUG - bitte Inhalt des Alerts mitteilen
+      alert(
+        `API-Antwort:\n` +
+        `plannedRenovationYear = ${saved?.plannedRenovationYear ?? 'null'}\n` +
+        `plannedRenovationCostChf = ${saved?.plannedRenovationCostChf ?? 'null'}\n\n` +
+        `Gesendete Daten:\n` +
+        `plannedRenovationYear = ${data.plannedRenovationYear ?? 'null'}\n` +
+        `plannedRenovationCostChf = ${data.plannedRenovationCostChf ?? 'null'}`
+      );
       const savedId = saved?.id ?? component?.id;
       window.location.href = savedId ? `/komponenten/${savedId}` : '/komponenten';
     } catch (e) {

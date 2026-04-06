@@ -39,12 +39,17 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  // TEMP DEBUG
+  console.log('[PUT /api/components] parsed.data:', JSON.stringify(parsed.data));
+
   let component;
   try {
     component = await prisma.homeComponent.update({
       where: { id },
       data: parsed.data,
     });
+    // TEMP DEBUG
+    console.log('[PUT /api/components] after update, plannedRenovationYear:', component.plannedRenovationYear, 'plannedRenovationCostChf:', component.plannedRenovationCostChf);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('Prisma update error:', message);
