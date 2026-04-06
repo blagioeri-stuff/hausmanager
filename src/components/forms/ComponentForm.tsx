@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
@@ -42,6 +42,7 @@ export function ComponentForm({ component }: Props) {
     register,
     handleSubmit,
     watch,
+    control,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -91,15 +92,6 @@ export function ComponentForm({ component }: Props) {
         throw new Error(typeof errData?.error === 'string' ? errData.error : 'Fehler beim Speichern');
       }
       const saved = await res.json().catch(() => null);
-      // TEMP DEBUG - bitte Inhalt des Alerts mitteilen
-      alert(
-        `API-Antwort:\n` +
-        `plannedRenovationYear = ${saved?.plannedRenovationYear ?? 'null'}\n` +
-        `plannedRenovationCostChf = ${saved?.plannedRenovationCostChf ?? 'null'}\n\n` +
-        `Gesendete Daten:\n` +
-        `plannedRenovationYear = ${data.plannedRenovationYear ?? 'null'}\n` +
-        `plannedRenovationCostChf = ${data.plannedRenovationCostChf ?? 'null'}`
-      );
       const savedId = saved?.id ?? component?.id;
       window.location.href = savedId ? `/komponenten/${savedId}` : '/komponenten';
     } catch (e) {
@@ -169,21 +161,37 @@ export function ComponentForm({ component }: Props) {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Input
-          label="Geplantes Renovationsjahr — optional"
-          type="number"
-          placeholder="z.B. 2031"
-          hint="Überschreibt das berechnete Erneuerungsjahr"
-          error={errors.plannedRenovationYear?.message}
-          {...register('plannedRenovationYear', { valueAsNumber: true, setValueAs: (v) => (v === '' || isNaN(Number(v)) ? null : Number(v)) })}
+        <Controller
+          name="plannedRenovationYear"
+          control={control}
+          render={({ field }) => (
+            <Input
+              label="Geplantes Renovationsjahr — optional"
+              type="number"
+              placeholder="z.B. 2031"
+              hint="Überschreibt das berechnete Erneuerungsjahr"
+              error={errors.plannedRenovationYear?.message}
+              value={field.value ?? ''}
+              onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value, 10))}
+              onBlur={field.onBlur}
+            />
+          )}
         />
-        <Input
-          label="Geplante Kosten (CHF) — optional"
-          type="number"
-          placeholder={typeDef ? String(typeDef.defaultCostChf) : ''}
-          hint="Überschreibt Standardkosten und individuelle Kosten"
-          error={errors.plannedRenovationCostChf?.message}
-          {...register('plannedRenovationCostChf', { valueAsNumber: true, setValueAs: (v) => (v === '' || isNaN(Number(v)) ? null : Number(v)) })}
+        <Controller
+          name="plannedRenovationCostChf"
+          control={control}
+          render={({ field }) => (
+            <Input
+              label="Geplante Kosten (CHF) — optional"
+              type="number"
+              placeholder={typeDef ? String(typeDef.defaultCostChf) : ''}
+              hint="Überschreibt Standardkosten und individuelle Kosten"
+              error={errors.plannedRenovationCostChf?.message}
+              value={field.value ?? ''}
+              onChange={(e) => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))}
+              onBlur={field.onBlur}
+            />
+          )}
         />
       </div>
 
