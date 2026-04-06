@@ -3,7 +3,6 @@ import { enrichComponent, computeReserveSummary, buildReserveProjection } from '
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SummaryCards } from '@/components/SummaryCards';
 import nextDynamic from 'next/dynamic';
-import { Card, CardTitle } from '@/components/ui/Card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 
@@ -54,31 +53,6 @@ export default async function DashboardPage() {
         enriched={enriched}
       />
 
-      {summary.componentsDueIn10Years.length > 0 && (
-        <Card>
-          <div className="mb-4">
-            <CardTitle>Fällig in den nächsten 10 Jahren</CardTitle>
-          </div>
-          <div className="space-y-2">
-            {summary.componentsDueIn10Years.map((c) => (
-              <Link key={c.id} href={`/komponenten/${c.id}`}>
-                <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{c.name}</p>
-                    <p className="text-xs text-gray-400">{c.typeDef.labelDe}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-gray-900">{c.replacementYear}</p>
-                    <p className="text-xs text-gray-400">
-                      {c.yearsRemaining <= 0 ? 'Fällig!' : `in ${c.yearsRemaining} J.`}
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </Card>
-      )}
     </div>
   );
 }

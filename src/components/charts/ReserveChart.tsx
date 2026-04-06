@@ -35,16 +35,17 @@ function formatChf(n: number) {
 const SERIES_LABELS: Record<string, string> = {
   istBalance: 'IST-Rücklagen',
   sollBalance: 'SOLL-Rücklagen',
-  expenditurePlanned: 'Ausgaben (geplant)',
-  expenditureCalculated: 'Ausgaben (berechnet)',
+  expenditurePlanned: 'Ausgaben (Geplant)',
+  expenditureCalculated: 'Ausgaben (Berechnet)',
 };
 
-type VisibleKey = 'istBalance' | 'sollBalance' | 'expenditure';
+type VisibleKey = 'istBalance' | 'sollBalance' | 'expenditurePlanned' | 'expenditureCalculated';
 
 const SERIES_CONFIG: { key: VisibleKey; label: string; activeColor: string; dotColor: string }[] = [
-  { key: 'istBalance', label: 'IST-Rücklagen', activeColor: '#16a34a', dotColor: '#bbf7d0' },
-  { key: 'sollBalance', label: 'SOLL-Rücklagen', activeColor: '#f59e0b', dotColor: '#fef3c7' },
-  { key: 'expenditure', label: 'Ausgaben', activeColor: '#ef4444', dotColor: '#fee2e2' },
+  { key: 'istBalance',           label: 'IST-Rücklagen',        activeColor: '#16a34a', dotColor: '#bbf7d0' },
+  { key: 'sollBalance',          label: 'SOLL-Rücklagen',       activeColor: '#f59e0b', dotColor: '#fef3c7' },
+  { key: 'expenditurePlanned',   label: 'Ausgaben (Geplant)',   activeColor: '#ef4444', dotColor: '#fee2e2' },
+  { key: 'expenditureCalculated',label: 'Ausgaben (Berechnet)', activeColor: '#f87171', dotColor: '#fecaca' },
 ];
 
 function CustomTooltip({
@@ -116,7 +117,8 @@ export function ReserveChart({ data, rawComponents = [], selectedYear, onYearSel
   const [visible, setVisible] = useState<Record<VisibleKey, boolean>>({
     istBalance: true,
     sollBalance: true,
-    expenditure: true,
+    expenditurePlanned: true,
+    expenditureCalculated: true,
   });
 
   // Compute Y-axis domain from actual data to avoid excessive negative space
@@ -195,7 +197,7 @@ export function ReserveChart({ data, rawComponents = [], selectedYear, onYearSel
               opacity={0.85}
               name="expenditurePlanned"
               barSize={12}
-              hide={!visible.expenditure}
+              hide={!visible.expenditurePlanned}
             />
             <Bar
               dataKey="expenditureCalculated"
@@ -204,7 +206,7 @@ export function ReserveChart({ data, rawComponents = [], selectedYear, onYearSel
               opacity={0.85}
               name="expenditureCalculated"
               barSize={12}
-              hide={!visible.expenditure}
+              hide={!visible.expenditureCalculated}
             />
             <Area
               type="monotone"

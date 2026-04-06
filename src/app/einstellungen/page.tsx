@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 export default async function EinstellungenPage() {
   const rows = await prisma.setting.findMany();
   const settings = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  const apiKeyViaEnv = !!process.env.CLAUDE_API_KEY;
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -14,7 +15,7 @@ export default async function EinstellungenPage() {
         title="Einstellungen"
         subtitle="Allgemeine Konfiguration und Daten-Export"
       />
-      <EinstellungenForm initialSettings={settings} />
+      <EinstellungenForm initialSettings={settings} apiKeyViaEnv={apiKeyViaEnv} />
     </div>
   );
 }

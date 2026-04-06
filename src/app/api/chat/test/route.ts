@@ -4,9 +4,11 @@ import Anthropic from '@anthropic-ai/sdk';
 export async function POST(req: NextRequest) {
   try {
     const { apiKey, model } = await req.json();
-    if (!apiKey) return NextResponse.json({ error: 'Kein API-Key angegeben' }, { status: 400 });
+    // Allow env var as override for testing too
+    const effectiveKey = process.env.CLAUDE_API_KEY || apiKey;
+    if (!effectiveKey) return NextResponse.json({ error: 'Kein API-Key angegeben' }, { status: 400 });
 
-    const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey: effectiveKey });
     await client.messages.create({
       model: model ?? 'claude-haiku-4-5-20251001',
       max_tokens: 10,

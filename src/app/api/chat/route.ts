@@ -46,14 +46,13 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, apiKey, model } = await req.json();
 
-    // Use provided API key or fall back to settings
-    let effectiveKey = apiKey;
+    // Priority: 1) env var, 2) request body apiKey, 3) DB setting
+    const effectiveKey =
+      process.env.CLAUDE_API_KEY ||
+      apiKey ||
+      (await prisma.setting.findUnique({ where: { key: 'claudeApiKey' } }))?.value;
     if (!effectiveKey) {
-      const setting = await prisma.setting.findUnique({ where: { key: 'claudeApiKey' } });
-      effectiveKey = setting?.value;
-    }
-    if (!effectiveKey) {
-      return NextResponse.json({ error: 'Kein Claude API-Key konfiguriert. Bitte in den Einstellungen hinterlegen.' }, { status: 400 });
+      return NextResponse.json({ error: 'Kein Claude API-Key konfiguriert. Bitte in den Einstellungen oder via CLAUDE_API_KEY Umgebungsvariable hinterlegen.' }, { status: 400 });
     }
 
     const effectiveModel = model ?? (await prisma.setting.findUnique({ where: { key: 'claudeModel' } }))?.value ?? 'claude-haiku-4-5-20251001';

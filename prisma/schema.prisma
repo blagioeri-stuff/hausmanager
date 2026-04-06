@@ -21,6 +21,8 @@ model HomeComponent {
   updatedAt         DateTime           @updatedAt
   maintenance       MaintenanceEntry[]
   documents         Document[]
+  costs             Cost[]
+  houseDocuments    HouseDocument[]
 }
 
 model MaintenanceEntry {
@@ -48,4 +50,35 @@ model Document {
 model Setting {
   key   String @id
   value String
+}
+
+model Cost {
+  id          String         @id @default(cuid())
+  type        String         // 'einmalig' | 'wiederkehrend'
+  category    String         // 'reparatur' | 'versicherung' | 'heizung_service' | 'garten' | 'reinigung' | 'verwaltung' | 'sonstiges'
+  description String
+  amountChf   Float
+  date        DateTime
+  recurrence  String?        // null | 'monatlich' | 'vierteljährlich' | 'jährlich'
+  componentId String?
+  component   HomeComponent? @relation(fields: [componentId], references: [id], onDelete: SetNull)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model HouseDocument {
+  id          String         @id @default(cuid())
+  category    String         // 'grundbuch' | 'versicherung' | 'bauplan' | 'hypothek' | 'energie' | 'behoerden' | 'wartung' | 'sonstiges'
+  title       String
+  description String?
+  filename    String?        // null if external link
+  storedName  String?        // null if external link
+  externalUrl String?        // null if uploaded file
+  componentId String?
+  component   HomeComponent? @relation(fields: [componentId], references: [id], onDelete: SetNull)
+  mimeType    String?
+  sizeBytes   Int?
+  uploadedAt  DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 }

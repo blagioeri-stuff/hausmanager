@@ -23,9 +23,14 @@ export default async function KomponentenPage() {
         title="Komponenten"
         subtitle="Alle Hauskomponenten und ihre Rücklageplanung"
         action={
-          <Link href="/komponenten/neu">
-            <Button>+ Neue Komponente</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/importieren">
+              <Button variant="secondary">KI-Import</Button>
+            </Link>
+            <Link href="/komponenten/neu">
+              <Button>+ Neue Komponente</Button>
+            </Link>
+          </div>
         }
       />
 
