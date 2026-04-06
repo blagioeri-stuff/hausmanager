@@ -90,8 +90,7 @@ export function ComponentForm({ component }: Props) {
         }
         throw new Error(typeof errData?.error === 'string' ? errData.error : 'Fehler beim Speichern');
       }
-      router.push('/komponenten');
-      router.refresh();
+      window.location.href = '/komponenten';
     } catch (e) {
       alert('Fehler: ' + (e instanceof Error ? e.message : String(e)));
     } finally {
