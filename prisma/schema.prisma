@@ -17,6 +17,8 @@ model HomeComponent {
   plannedRenovationYear    Int?
   plannedRenovationCostChf Float?
   notes                    String?
+  renovationPlanned        Boolean            @default(true)
+  maintenanceIntervalMonths Int?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   maintenance       MaintenanceEntry[]

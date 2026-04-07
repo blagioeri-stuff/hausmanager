@@ -16,6 +16,8 @@ const UpdateSchema = z.object({
   plannedRenovationYear: z.number().int().min(1900).nullable().optional(),
   plannedRenovationCostChf: z.number().positive().nullable().optional(),
   notes: z.string().nullable().optional(),
+  renovationPlanned: z.boolean().optional(),
+  maintenanceIntervalMonths: z.number().int().positive().nullable().optional(),
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {

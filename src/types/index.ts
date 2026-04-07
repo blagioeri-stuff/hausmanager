@@ -10,6 +10,8 @@ export interface RawComponent {
   plannedRenovationYear: number | null;
   plannedRenovationCostChf: number | null;
   notes: string | null;
+  renovationPlanned: boolean;
+  maintenanceIntervalMonths: number | null;
   createdAt: string;
   updatedAt: string;
 }

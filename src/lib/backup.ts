@@ -14,7 +14,14 @@ function getDbPath(): string {
   // Parse "file:./prisma/dev.db?..." → "./prisma/dev.db"
   const match = url.match(/^file:([^?]+)/);
   const relative = match ? match[1] : './prisma/dev.db';
-  return path.resolve(process.cwd(), relative);
+  const resolved = path.resolve(process.cwd(), relative);
+  // Fallback: if resolved path doesn't exist (e.g. absolute Mac path on Linux server),
+  // try the standard relative location
+  if (!fs.existsSync(resolved)) {
+    const fallback = path.join(process.cwd(), 'prisma', 'dev.db');
+    if (fs.existsSync(fallback)) return fallback;
+  }
+  return resolved;
 }
 
 function getBackupDir(): string {

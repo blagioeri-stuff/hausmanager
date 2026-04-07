@@ -32,15 +32,6 @@ const navItems = [
     ),
   },
   {
-    href: '/importieren',
-    label: 'KI-Import',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-      </svg>
-    ),
-  },
-  {
     href: '/kosten',
     label: 'Kosten',
     icon: (
@@ -77,16 +68,27 @@ const navItems = [
     ),
   },
   {
-    href: '/einstellungen',
-    label: 'Einstellungen',
+    href: '/importieren',
+    label: 'KI-Import',
+    ki: true,
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
       </svg>
     ),
   },
 ];
+
+const einstellungenItem = {
+  href: '/einstellungen',
+  label: 'Einstellungen',
+  icon: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
+};
 
 interface SidebarProps {
   version?: string;
@@ -117,6 +119,21 @@ export function Sidebar({ version, installedAt }: SidebarProps) {
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            if (item.ki) {
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-50 border border-blue-100 ${
+                    isActive ? 'text-blue-700' : 'text-blue-600 hover:bg-blue-100'
+                  }`}
+                >
+                  <span className="text-blue-500">{item.icon}</span>
+                  {item.label}
+                  <span className="ml-auto text-[10px] bg-blue-600 text-white rounded-full px-1.5 py-0.5">KI</span>
+                </Link>
+              );
+            }
             return (
               <Link
                 key={item.href}
@@ -134,6 +151,25 @@ export function Sidebar({ version, installedAt }: SidebarProps) {
           })}
         </nav>
 
+        <div className="px-3 pb-2 border-t border-gray-100 pt-2">
+          {(() => {
+            const isActive = pathname === einstellungenItem.href;
+            return (
+              <Link
+                href={einstellungenItem.href}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+              >
+                <span className={isActive ? 'text-blue-600' : 'text-gray-400'}>{einstellungenItem.icon}</span>
+                {einstellungenItem.label}
+              </Link>
+            );
+          })()}
+        </div>
+
         <div className="px-5 py-4 border-t border-gray-100">
           <p className="text-xs font-medium text-gray-400">v{version ?? '—'}</p>
           {installedAt && (
@@ -144,7 +180,7 @@ export function Sidebar({ version, installedAt }: SidebarProps) {
 
       {/* Mobile bottom navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex">
-        {navItems.map((item) => {
+        {[...navItems, einstellungenItem].map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link
@@ -155,7 +191,7 @@ export function Sidebar({ version, installedAt }: SidebarProps) {
               }`}
             >
               <span>{item.icon}</span>
-              <span>{item.label}</span>
+              <span>{'ki' in item && item.ki ? 'KI' : item.label}</span>
             </Link>
           );
         })}

@@ -13,6 +13,8 @@ const CreateSchema = z.object({
   plannedRenovationYear: z.number().int().min(1900).nullable().optional(),
   plannedRenovationCostChf: z.number().positive().nullable().optional(),
   notes: z.string().nullable().optional(),
+  renovationPlanned: z.boolean().optional(),
+  maintenanceIntervalMonths: z.number().int().positive().nullable().optional(),
 });
 
 export async function GET() {
@@ -44,6 +46,8 @@ export async function POST(request: Request) {
         plannedRenovationYear: parsed.data.plannedRenovationYear ?? null,
         plannedRenovationCostChf: parsed.data.plannedRenovationCostChf ?? null,
         notes: parsed.data.notes ?? null,
+        renovationPlanned: parsed.data.renovationPlanned ?? true,
+        maintenanceIntervalMonths: parsed.data.maintenanceIntervalMonths ?? null,
       },
     });
   } catch (err) {

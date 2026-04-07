@@ -6,6 +6,7 @@ export interface ComponentTypeDefinition {
   defaultLifetimeYrs: number;
   defaultCostChf: number;
   category: ComponentCategory;
+  defaultMaintenanceIntervalMonths?: number;
 }
 
 export const COMPONENT_TYPES: Record<string, ComponentTypeDefinition> = {
@@ -36,6 +37,7 @@ export const COMPONENT_TYPES: Record<string, ComponentTypeDefinition> = {
     defaultLifetimeYrs: 20,
     defaultCostChf: 25_000,
     category: 'technik',
+    defaultMaintenanceIntervalMonths: 12,
   },
   dach: {
     key: 'dach',

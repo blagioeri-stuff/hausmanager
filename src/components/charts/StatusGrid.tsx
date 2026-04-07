@@ -33,11 +33,13 @@ type StatusFilter = 'green' | 'yellow' | 'red';
 type DueFilter = 5 | 10 | 15;
 type RenovationType = 'planned' | 'calculated';
 
-export function StatusGrid({ components }: Props) {
+export function StatusGrid({ components: initialComponents }: Props) {
+  const [components, setComponents] = useState<EnrichedComponent[]>(initialComponents);
   const [statusFilters, setStatusFilters] = useState<Set<StatusFilter>>(new Set());
   const [typeFilters, setTypeFilters] = useState<Set<string>>(new Set());
   const [dueFilter, setDueFilter] = useState<DueFilter | null>(null);
   const [renovationFilter, setRenovationFilter] = useState<RenovationType | null>(null);
+  const [showNotPlanned, setShowNotPlanned] = useState(false);
 
   if (components.length === 0) {
     return (
@@ -50,6 +52,20 @@ export function StatusGrid({ components }: Props) {
     );
   }
 
+  async function handleRenovationPlannedToggle(id: string, newValue: boolean) {
+    setComponents(prev => prev.map(c => c.id === id ? { ...c, renovationPlanned: newValue } : c));
+    try {
+      const res = await fetch(`/api/components/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ renovationPlanned: newValue }),
+      });
+      if (!res.ok) throw new Error('Fehler beim Speichern');
+    } catch {
+      setComponents(prev => prev.map(c => c.id === id ? { ...c, renovationPlanned: !newValue } : c));
+    }
+  }
+
   // Alphabetical sort — consistent across all year views
   const sorted = [...components].sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
@@ -60,10 +76,11 @@ export function StatusGrid({ components }: Props) {
     if (dueFilter !== null && c.yearsRemaining > dueFilter) return false;
     if (renovationFilter === 'planned' && c.plannedRenovationYear === null) return false;
     if (renovationFilter === 'calculated' && c.plannedRenovationYear !== null) return false;
+    if (showNotPlanned && c.renovationPlanned) return false;
     return true;
   });
 
-  const hasActiveFilters = statusFilters.size > 0 || typeFilters.size > 0 || dueFilter !== null || renovationFilter !== null;
+  const hasActiveFilters = statusFilters.size > 0 || typeFilters.size > 0 || dueFilter !== null || renovationFilter !== null || showNotPlanned;
 
   function toggleStatus(s: StatusFilter) {
     setStatusFilters((prev) => {
@@ -86,6 +103,7 @@ export function StatusGrid({ components }: Props) {
     setTypeFilters(new Set());
     setDueFilter(null);
     setRenovationFilter(null);
+    setShowNotPlanned(false);
   }
 
   const chipBase = 'px-2.5 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer select-none';
@@ -138,6 +156,16 @@ export function StatusGrid({ components }: Props) {
             className={`${chipBase} ${renovationFilter === 'calculated' ? 'bg-gray-100 border-gray-400 text-gray-800 italic' : chipInactive}`}
           >
             Berechnet
+          </button>
+        </div>
+
+        {/* Nicht geplant */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setShowNotPlanned(!showNotPlanned)}
+            className={`${chipBase} ${showNotPlanned ? 'bg-orange-50 border-orange-300 text-orange-700' : chipInactive}`}
+          >
+            Nicht geplant
           </button>
         </div>
 
@@ -203,20 +231,22 @@ export function StatusGrid({ components }: Props) {
               <th className="pb-2 font-medium text-right">Erneuerung</th>
               <th className="pb-2 font-medium text-right hidden md:table-cell">CHF/Jahr</th>
               <th className="pb-2 font-medium text-center">Status</th>
+              <th className="pb-2 font-medium text-center">Geplant</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-gray-400 text-sm">
+                <td colSpan={7} className="py-8 text-center text-gray-400 text-sm">
                   Keine Komponenten entsprechen den aktiven Filtern.
                 </td>
               </tr>
             ) : (
               filtered.map((c) => {
                 const pct = Math.min(Math.round(c.ageRatio * 100), 100);
+                const notPlanned = !c.renovationPlanned;
                 return (
-                  <tr key={c.id} className="hover:bg-gray-50 transition-colors group">
+                  <tr key={c.id} className={`hover:bg-gray-50 transition-colors group ${notPlanned ? 'opacity-60' : ''}`}>
                     <td className="py-2.5 pr-4">
                       <Link href={`/komponenten/${c.id}`} className="font-medium text-gray-900 hover:text-blue-600 group-hover:text-blue-600">
                         {c.name}
@@ -241,6 +271,8 @@ export function StatusGrid({ components }: Props) {
                       <br />
                       {c.yearsRemaining <= 0 ? (
                         <span className="text-red-600 font-medium text-xs">Fällig!</span>
+                      ) : notPlanned ? (
+                        <span className="text-gray-400 text-sm italic line-through">{c.replacementYear} <span className="text-xs">({c.yearsRemaining} J.)</span></span>
                       ) : c.plannedRenovationYear !== null ? (
                         <span className="text-gray-900 text-sm font-medium">{c.replacementYear} <span className="text-xs text-gray-400">({c.yearsRemaining} J.)</span></span>
                       ) : (
@@ -253,6 +285,15 @@ export function StatusGrid({ components }: Props) {
                     </td>
                     <td className="py-2.5 text-center">
                       <Badge color={c.statusColor}>{statusLabel(c)}</Badge>
+                    </td>
+                    <td className="py-2.5 text-center">
+                      <input
+                        type="checkbox"
+                        checked={c.renovationPlanned}
+                        onChange={(e) => handleRenovationPlannedToggle(c.id, e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        title={c.renovationPlanned ? 'Renovation geplant' : 'Renovation nicht geplant'}
+                      />
                     </td>
                   </tr>
                 );

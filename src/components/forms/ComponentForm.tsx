@@ -25,6 +25,8 @@ const schema = z.object({
   plannedRenovationYear: z.number().int('Ganzzahl').min(1900, 'Min. 1900').nullable().optional(),
   plannedRenovationCostChf: z.number().positive('Muss positiv sein').nullable().optional(),
   notes: z.string().nullable().optional(),
+  renovationPlanned: z.boolean().optional(),
+  maintenanceIntervalMonths: z.number().int().positive('Muss positiv sein').nullable().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -63,6 +65,8 @@ export function ComponentForm({ component, prefill }: Props) {
       plannedRenovationYear: component?.plannedRenovationYear ?? null,
       plannedRenovationCostChf: component?.plannedRenovationCostChf ?? null,
       notes: component?.notes ?? '',
+      renovationPlanned: component?.renovationPlanned ?? true,
+      maintenanceIntervalMonths: component?.maintenanceIntervalMonths ?? null,
     },
   });
 
@@ -88,6 +92,7 @@ export function ComponentForm({ component, prefill }: Props) {
           plannedRenovationYear: data.plannedRenovationYear || null,
           plannedRenovationCostChf: data.plannedRenovationCostChf || null,
           notes: data.notes || null,
+          maintenanceIntervalMonths: data.maintenanceIntervalMonths || null,
         }),
       });
       if (!res.ok) {
@@ -142,11 +147,17 @@ export function ComponentForm({ component, prefill }: Props) {
       />
 
       <Input
-        label="Baujahr / Renovationsjahr"
+        label="Baujahr"
         type="number"
         placeholder={String(new Date().getFullYear())}
+        hint="Originalbau oder letztes Renovationsjahr"
         error={errors.buildYear?.message}
-        {...register('buildYear', { valueAsNumber: true })}
+        {...register('buildYear', {
+          setValueAs: (v) =>
+            v === '' || v === undefined || v === null
+              ? new Date().getFullYear()
+              : parseInt(String(v), 10),
+        })}
       />
 
       <div className="grid grid-cols-2 gap-4">
@@ -156,7 +167,7 @@ export function ComponentForm({ component, prefill }: Props) {
           placeholder={typeDef ? String(typeDef.defaultCostChf) : ''}
           hint="Leer = Standardwert verwenden"
           error={errors.customCostChf?.message}
-          {...register('customCostChf', { valueAsNumber: true, setValueAs: (v) => (v === '' || isNaN(Number(v)) ? null : Number(v)) })}
+          {...register('customCostChf', { setValueAs: (v) => (v === '' || isNaN(Number(v)) ? null : Number(v)) })}
         />
         <Input
           label="Lebensdauer (Jahre) — optional"
@@ -164,7 +175,7 @@ export function ComponentForm({ component, prefill }: Props) {
           placeholder={typeDef ? String(typeDef.defaultLifetimeYrs) : ''}
           hint="Leer = Standardwert verwenden"
           error={errors.customLifetimeYrs?.message}
-          {...register('customLifetimeYrs', { valueAsNumber: true, setValueAs: (v) => (v === '' || isNaN(Number(v)) ? null : Number(v)) })}
+          {...register('customLifetimeYrs', { setValueAs: (v) => (v === '' || isNaN(Number(v)) ? null : Number(v)) })}
         />
       </div>
 
@@ -203,11 +214,32 @@ export function ComponentForm({ component, prefill }: Props) {
         />
       </div>
 
+      <Input
+        label="Wartungsintervall (Monate) — optional"
+        type="number"
+        placeholder={typeDef && 'defaultMaintenanceIntervalMonths' in typeDef ? String((typeDef as { defaultMaintenanceIntervalMonths?: number }).defaultMaintenanceIntervalMonths) : '12'}
+        hint="Leer = keine Erinnerung. z.B. 12 für jährlichen Heizungsservice."
+        error={errors.maintenanceIntervalMonths?.message}
+        {...register('maintenanceIntervalMonths', { setValueAs: (v) => (v === '' || isNaN(Number(v)) ? null : parseInt(String(v), 10)) })}
+      />
+
       <Textarea
         label="Notizen — optional"
         placeholder="Marke, Modell, besondere Merkmale…"
         {...register('notes')}
       />
+
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="renovationPlanned"
+          {...register('renovationPlanned')}
+          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+        <label htmlFor="renovationPlanned" className="text-sm text-gray-700">
+          Renovation zum errechneten Zeitpunkt geplant
+        </label>
+      </div>
 
       <div className="flex gap-3 pt-2">
         <Button type="submit" loading={loading}>

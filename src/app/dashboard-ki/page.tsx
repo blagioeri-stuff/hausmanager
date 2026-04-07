@@ -77,15 +77,22 @@ export default async function DashboardKIPage() {
     .sort((a, b) => a.yearsRemaining - b.yearsRemaining)
     .slice(0, 5);
 
-  // Wartungserinnerungen: components that haven't had maintenance in > 1 year (or never)
-  // Only show yellow/red components
+  // Wartungserinnerungen: components that haven't been maintained within their interval
+  // Components with maintenanceIntervalMonths set are always checked;
+  // components without use 12-month fallback but only if yellow/red
   const wartungsErinnerungen = rawComponents
     .filter((c) => {
-      const enriched_c = enriched.find((e) => e.id === c.id);
-      if (!enriched_c || enriched_c.statusColor === 'green') return false;
+      const intervalMonths = c.maintenanceIntervalMonths ?? 12;
+      const thresholdDate = new Date();
+      thresholdDate.setMonth(thresholdDate.getMonth() - intervalMonths);
+      // Without a custom interval, only warn for yellow/red components
+      if (!c.maintenanceIntervalMonths) {
+        const enriched_c = enriched.find((e) => e.id === c.id);
+        if (!enriched_c || enriched_c.statusColor === 'green') return false;
+      }
       if (c.maintenance.length === 0) return true;
       const lastMaintenance = new Date(c.maintenance[0].date);
-      return lastMaintenance < oneYearAgo;
+      return lastMaintenance < thresholdDate;
     })
     .slice(0, 5);
 
@@ -220,7 +227,7 @@ export default async function DashboardKIPage() {
             <h2 className="text-base font-semibold text-gray-900">Wartungserinnerungen</h2>
           </div>
           <p className="text-xs text-gray-400 mb-3">
-            Komponenten mit kritischem/mittlerem Status, die über 1 Jahr nicht gewartet wurden.
+            Komponenten, die ihr Wartungsintervall überschritten haben oder noch nie gewartet wurden.
           </p>
           <div className="space-y-2">
             {wartungsErinnerungen.map((c) => {
@@ -242,6 +249,9 @@ export default async function DashboardKIPage() {
                         {lastDate
                           ? `Letzte Wartung: ${new Date(lastDate).toLocaleDateString('de-CH', { dateStyle: 'medium' })}`
                           : 'Noch keine Wartung erfasst'}
+                        {c.maintenanceIntervalMonths && (
+                          <span className="ml-1 text-amber-500">(alle {c.maintenanceIntervalMonths} Mt.)</span>
+                        )}
                       </p>
                     </div>
                   </div>

@@ -58,7 +58,8 @@ interface Props {
   components: EnrichedComponent[];
 }
 
-export function KomponentenTable({ components }: Props) {
+export function KomponentenTable({ components: initialComponents }: Props) {
+  const [components, setComponents] = useState<EnrichedComponent[]>(initialComponents);
   const [sortKey, setSortKey] = useState<SortKey>('statusColor');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -68,6 +69,22 @@ export function KomponentenTable({ components }: Props) {
     } else {
       setSortKey(key);
       setSortDir('asc');
+    }
+  }
+
+  async function handleRenovationPlannedToggle(id: string, newValue: boolean) {
+    // Optimistic update
+    setComponents(prev => prev.map(c => c.id === id ? { ...c, renovationPlanned: newValue } : c));
+    try {
+      const res = await fetch(`/api/components/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ renovationPlanned: newValue }),
+      });
+      if (!res.ok) throw new Error('Fehler beim Speichern');
+    } catch {
+      // Revert on error
+      setComponents(prev => prev.map(c => c.id === id ? { ...c, renovationPlanned: !newValue } : c));
     }
   }
 
@@ -98,14 +115,18 @@ export function KomponentenTable({ components }: Props) {
             <Th label="Verbleibend" colKey="yearsRemaining" align="right" />
             <Th label="Jährl. Rücklage" colKey="annualSavingsChf" align="right" />
             <Th label="Status" colKey="statusColor" align="center" />
+            <th className="px-4 py-3 text-center font-medium text-gray-500">Geplant</th>
             <th className="px-4 py-3 text-right font-medium text-gray-500">Aktionen</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
           {sorted.map((c) => (
-            <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+            <tr key={c.id} className={`hover:bg-gray-50 transition-colors ${!c.renovationPlanned ? 'opacity-60' : ''}`}>
               <td className="px-4 py-3">
-                <Link href={`/komponenten/${c.id}`} className="font-medium text-gray-900 hover:text-blue-600">
+                <Link
+                  href={`/komponenten/${c.id}`}
+                  className={`font-medium hover:text-blue-600 ${!c.renovationPlanned ? 'line-through text-gray-400' : 'text-gray-900'}`}
+                >
                   {c.name}
                 </Link>
               </td>
@@ -125,6 +146,15 @@ export function KomponentenTable({ components }: Props) {
               </td>
               <td className="px-4 py-3 text-center">
                 <Badge color={c.statusColor}>{STATUS_LABEL[c.statusColor]}</Badge>
+              </td>
+              <td className="px-4 py-3 text-center">
+                <input
+                  type="checkbox"
+                  checked={c.renovationPlanned}
+                  onChange={(e) => handleRenovationPlannedToggle(c.id, e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  title={c.renovationPlanned ? 'Renovation geplant' : 'Renovation nicht geplant'}
+                />
               </td>
               <td className="px-4 py-3 text-right">
                 <div className="flex gap-1 justify-end">
