@@ -27,14 +27,18 @@ export default function GartenKartePage() {
   const [loading, setLoading] = useState(true);
   const [dragging, setDragging] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<MapItem | null>(null);
+  const [bgUrl, setBgUrl] = useState<string | null>(null);
+  const [bgUploading, setBgUploading] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
+  const bgFileRef = useRef<HTMLInputElement>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     Promise.all([
       fetch('/api/garten/pflanzen').then((r) => r.json()),
       fetch('/api/garten/elemente').then((r) => r.json()),
-    ]).then(([plants, elements]) => {
+      fetch('/api/garten/karte/background').then((r) => r.json()),
+    ]).then(([plants, elements, bg]) => {
       const plantItems: MapItem[] = plants.map((p: { id: string; name: string; typeKey: string; posX: number | null; posY: number | null; status: string }) => ({
         id: p.id, name: p.name, typeKey: p.typeKey,
         posX: p.posX, posY: p.posY, status: p.status, kind: 'plant' as const,
@@ -44,6 +48,7 @@ export default function GartenKartePage() {
         posX: e.posX, posY: e.posY, kind: 'element' as const,
       }));
       setItems([...plantItems, ...elementItems]);
+      setBgUrl(bg.url ?? null);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -84,6 +89,24 @@ export default function GartenKartePage() {
     setDragging(null);
   }
 
+  async function handleBgUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBgUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/garten/karte/background', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (res.ok) setBgUrl(data.url);
+    setBgUploading(false);
+    e.target.value = '';
+  }
+
+  async function removeBg() {
+    await fetch('/api/garten/karte/background', { method: 'DELETE' });
+    setBgUrl(null);
+  }
+
   return (
     <div className="max-w-4xl space-y-4">
       <PageHeader
@@ -101,16 +124,55 @@ export default function GartenKartePage() {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            className="relative bg-green-50 border-2 border-green-200 rounded-2xl overflow-hidden select-none"
+            className={`relative border-2 rounded-2xl overflow-hidden select-none ${bgUrl ? 'border-gray-300 bg-gray-100' : 'bg-green-50 border-green-200'}`}
             style={{ height: '520px', cursor: dragging ? 'grabbing' : 'default' }}
           >
-            {/* Grid lines */}
-            <div className="absolute inset-0 opacity-20 pointer-events-none"
-              style={{ backgroundImage: 'linear-gradient(#86efac 1px, transparent 1px), linear-gradient(90deg, #86efac 1px, transparent 1px)', backgroundSize: '10% 10%' }} />
+            {/* Background: satellite photo or green grid */}
+            {bgUrl ? (
+              <img
+                src={bgUrl}
+                alt="Gartenhintergrund"
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                draggable={false}
+              />
+            ) : (
+              <div
+                className="absolute inset-0 opacity-20 pointer-events-none"
+                style={{ backgroundImage: 'linear-gradient(#86efac 1px, transparent 1px), linear-gradient(90deg, #86efac 1px, transparent 1px)', backgroundSize: '10% 10%' }}
+              />
+            )}
 
             {/* Legend */}
             <div className="absolute top-2 left-2 bg-white/80 rounded-lg px-2 py-1 text-xs text-gray-500 pointer-events-none">
               N ↑ · ca. 20m × 30m
+            </div>
+
+            {/* Background controls */}
+            <div className="absolute top-2 right-2 flex gap-1.5 z-10">
+              <button
+                onClick={() => bgFileRef.current?.click()}
+                disabled={bgUploading}
+                className="bg-white/90 hover:bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-gray-600 shadow-sm transition-colors flex items-center gap-1"
+              >
+                {bgUploading ? (
+                  <span>Lädt…</span>
+                ) : (
+                  <>
+                    <span>🗺</span>
+                    <span>{bgUrl ? 'Foto ersetzen' : 'Satellitenfoto'}</span>
+                  </>
+                )}
+              </button>
+              {bgUrl && (
+                <button
+                  onClick={removeBg}
+                  title="Hintergrundbild entfernen"
+                  className="bg-white/90 hover:bg-red-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-red-400 hover:text-red-600 shadow-sm transition-colors"
+                >
+                  ✕
+                </button>
+              )}
+              <input ref={bgFileRef} type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
             </div>
 
             {/* Positioned items */}
@@ -123,13 +185,13 @@ export default function GartenKartePage() {
                   onMouseDown={(e) => handleMouseDown(e, item)}
                   onMouseEnter={() => !dragging && setTooltip(item)}
                   onMouseLeave={() => setTooltip(null)}
-                  className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing flex flex-col items-center`}
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing flex flex-col items-center z-20"
                   style={{ left: `${item.posX}%`, top: `${item.posY}%` }}
                 >
-                  <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center text-lg shadow-sm ${statusClass}`}>
+                  <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center text-lg shadow-md ${statusClass}`}>
                     {typeDef?.icon ?? '🌿'}
                   </div>
-                  <span className="mt-0.5 text-[10px] text-gray-700 bg-white/70 px-1 rounded max-w-[80px] truncate text-center leading-tight">
+                  <span className="mt-0.5 text-[10px] text-gray-800 bg-white/85 px-1 rounded max-w-[80px] truncate text-center leading-tight shadow-sm">
                     {item.name}
                   </span>
                 </div>
@@ -138,7 +200,7 @@ export default function GartenKartePage() {
 
             {/* Tooltip */}
             {tooltip && (
-              <div className="absolute bottom-3 left-3 bg-white rounded-lg shadow-lg p-3 text-xs pointer-events-none z-10 min-w-[140px]">
+              <div className="absolute bottom-3 left-3 bg-white rounded-lg shadow-lg p-3 text-xs pointer-events-none z-30 min-w-[140px]">
                 <p className="font-semibold text-gray-900">{tooltip.name}</p>
                 <p className="text-gray-500">
                   {tooltip.kind === 'plant'
@@ -170,7 +232,21 @@ export default function GartenKartePage() {
             )}
           </div>
 
-          {/* Unpositioned items sidebar */}
+          {/* Hint when no background */}
+          {!bgUrl && (
+            <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700 flex items-start gap-2">
+              <span className="text-base">💡</span>
+              <div>
+                <p className="font-medium">Satellitenfoto als Hintergrund</p>
+                <p className="text-blue-500 mt-0.5">
+                  Mach einen Screenshot deines Gartens in Google Maps (Satellitenansicht) und lade ihn über &quot;🗺 Satellitenfoto&quot; oben rechts hoch.
+                  Das Bild bleibt lokal auf deinem Gerät — es wird nirgendwo übertragen.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Unpositioned items */}
           {unpositioned.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
@@ -183,7 +259,6 @@ export default function GartenKartePage() {
                     <button
                       key={item.id}
                       onClick={() => {
-                        // Place in center when clicked
                         const posX = 40 + Math.random() * 20;
                         const posY = 40 + Math.random() * 20;
                         setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, posX, posY } : i));
