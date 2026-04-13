@@ -94,3 +94,70 @@ model Link {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model GardenPlant {
+  id                   String        @id @default(cuid())
+  name                 String
+  latinName            String?
+  typeKey              String
+  locationHint         String?
+  posX                 Float?
+  posY                 Float?
+  plantedYear          Int?
+  status               String        @default("gut")
+  winterProtection     Boolean       @default(false)
+  wateringIntervalDays Int?
+  fertilizingWeeks     Int?
+  pruningMonths        String?
+  notes                String?
+  photos               GardenPhoto[]
+  todos                GardenTodo[]
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+}
+
+model GardenElement {
+  id        String        @id @default(cuid())
+  name      String
+  typeKey   String
+  posX      Float?
+  posY      Float?
+  sizeM2    Float?
+  notes     String?
+  photos    GardenPhoto[]
+  todos     GardenTodo[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model GardenPhoto {
+  id         String         @id @default(cuid())
+  storedName String
+  filename   String
+  mimeType   String
+  sizeBytes  Int
+  notes      String?
+  plantId    String?
+  plant      GardenPlant?   @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  elementId  String?
+  element    GardenElement? @relation(fields: [elementId], references: [id], onDelete: Cascade)
+  uploadedAt DateTime       @default(now())
+}
+
+model GardenTodo {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  dueMonth    Int?
+  recurring   Boolean        @default(false)
+  done        Boolean        @default(false)
+  doneAt      DateTime?
+  priority    String         @default("normal")
+  category    String         @default("pflege")
+  plantId     String?
+  plant       GardenPlant?   @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  elementId   String?
+  element     GardenElement? @relation(fields: [elementId], references: [id], onDelete: SetNull)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}

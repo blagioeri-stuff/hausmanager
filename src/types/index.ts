@@ -73,3 +73,62 @@ export interface RawDocument {
   sizeBytes: number;
   uploadedAt: string;
 }
+
+export interface RawGardenPlant {
+  id: string;
+  name: string;
+  latinName: string | null;
+  typeKey: string;
+  locationHint: string | null;
+  posX: number | null;
+  posY: number | null;
+  plantedYear: number | null;
+  status: string;
+  winterProtection: boolean;
+  wateringIntervalDays: number | null;
+  fertilizingWeeks: number | null;
+  pruningMonths: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RawGardenElement {
+  id: string;
+  name: string;
+  typeKey: string;
+  posX: number | null;
+  posY: number | null;
+  sizeM2: number | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RawGardenPhoto {
+  id: string;
+  storedName: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  notes: string | null;
+  plantId: string | null;
+  elementId: string | null;
+  uploadedAt: string;
+}
+
+export interface RawGardenTodo {
+  id: string;
+  title: string;
+  description: string | null;
+  dueMonth: number | null;
+  recurring: boolean;
+  done: boolean;
+  doneAt: string | null;
+  priority: string;
+  category: string;
+  plantId: string | null;
+  elementId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
