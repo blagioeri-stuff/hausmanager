@@ -48,6 +48,14 @@ const navItems = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
       </svg>
     ),
+    children: [
+      { href: '/garten', label: 'Übersicht' },
+      { href: '/garten/pflanzen', label: 'Pflanzen' },
+      { href: '/garten/elemente', label: 'Elemente' },
+      { href: '/garten/aufgaben', label: 'Aufgaben' },
+      { href: '/garten/karte', label: 'Gartenplan' },
+      { href: '/garten/ki-analyse', label: 'KI-Analyse' },
+    ],
   },
   {
     href: '/dokumentation',
@@ -141,6 +149,52 @@ export function Sidebar({ version, installedAt }: SidebarProps) {
                   {item.label}
                   <span className="ml-auto text-[10px] bg-blue-600 text-white rounded-full px-1.5 py-0.5">KI</span>
                 </Link>
+              );
+            }
+            if ('children' in item && item.children) {
+              const isExpanded = isActive;
+              return (
+                <div key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                  >
+                    <span className={isActive ? 'text-blue-600' : 'text-gray-400'}>{item.icon}</span>
+                    {item.label}
+                    <svg
+                      className={`ml-auto w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''} ${isActive ? 'text-blue-400' : 'text-gray-300'}`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                  {isExpanded && (
+                    <div className="mt-0.5 ml-4 pl-3 border-l border-gray-100 space-y-0.5">
+                      {item.children.map((child) => {
+                        const childActive = child.href === item.href
+                          ? pathname === child.href
+                          : pathname === child.href || pathname.startsWith(child.href + '/');
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            className={`block px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                              childActive
+                                ? 'text-blue-700 bg-blue-50'
+                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                            }`}
+                          >
+                            {child.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             }
             return (

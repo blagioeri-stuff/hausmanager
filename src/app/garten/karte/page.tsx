@@ -29,6 +29,7 @@ export default function GartenKartePage() {
   const [tooltip, setTooltip] = useState<MapItem | null>(null);
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [bgUploading, setBgUploading] = useState(false);
+  const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const bgFileRef = useRef<HTMLInputElement>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -105,6 +106,7 @@ export default function GartenKartePage() {
   async function removeBg() {
     await fetch('/api/garten/karte/background', { method: 'DELETE' });
     setBgUrl(null);
+    setImageAspectRatio(null);
   }
 
   return (
@@ -125,15 +127,26 @@ export default function GartenKartePage() {
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             className={`relative border-2 rounded-2xl overflow-hidden select-none ${bgUrl ? 'border-gray-300 bg-gray-100' : 'bg-green-50 border-green-200'}`}
-            style={{ height: '520px', cursor: dragging ? 'grabbing' : 'default' }}
+            style={{
+              height: bgUrl && imageAspectRatio ? undefined : '520px',
+              aspectRatio: bgUrl && imageAspectRatio ? String(imageAspectRatio) : undefined,
+              maxHeight: '80vh',
+              cursor: dragging ? 'grabbing' : 'default',
+            }}
           >
             {/* Background: satellite photo or green grid */}
             {bgUrl ? (
               <img
                 src={bgUrl}
                 alt="Gartenhintergrund"
-                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                className="absolute inset-0 w-full h-full object-fill pointer-events-none"
                 draggable={false}
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  if (img.naturalWidth && img.naturalHeight) {
+                    setImageAspectRatio(img.naturalWidth / img.naturalHeight);
+                  }
+                }}
               />
             ) : (
               <div
