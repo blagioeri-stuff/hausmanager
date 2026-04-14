@@ -22,6 +22,13 @@ interface GardenTodo {
   createdAt: string;
 }
 
+interface KiTodo {
+  title: string;
+  category: string;
+  priority: string;
+  dueMonth: number;
+}
+
 const PRIORITY_DOT: Record<string, string> = {
   hoch: 'bg-red-500',
   normal: 'bg-yellow-400',
@@ -41,6 +48,11 @@ export default function GartenAufgabenPage() {
   const [newCategory, setNewCategory] = useState('pflege');
   const [newPriority, setNewPriority] = useState('normal');
   const [saving, setSaving] = useState(false);
+
+  // KI suggestions state
+  const [kiLoading, setKiLoading] = useState(false);
+  const [kiTodos, setKiTodos] = useState<KiTodo[]>([]);
+  const [kiError, setKiError] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -90,6 +102,55 @@ export default function GartenAufgabenPage() {
     setSaving(false);
   }
 
+  async function fetchKiSuggestions() {
+    setKiLoading(true);
+    setKiError(null);
+    try {
+      const res = await fetch('/api/garten/aufgaben/ki');
+      const data = await res.json();
+      if (!res.ok) {
+        setKiError(data.error ?? 'Fehler beim Laden der KI-Vorschläge.');
+      } else {
+        setKiTodos(data.todos ?? []);
+      }
+    } catch {
+      setKiError('Netzwerkfehler.');
+    } finally {
+      setKiLoading(false);
+    }
+  }
+
+  async function acceptKiTodo(kt: KiTodo, index: number) {
+    const res = await fetch('/api/garten/todos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: kt.title, dueMonth: kt.dueMonth, category: kt.category, priority: kt.priority }),
+    });
+    if (res.ok) {
+      const todo = await res.json();
+      setTodos((prev) => [todo, ...prev]);
+      setKiTodos((prev) => prev.filter((_, i) => i !== index));
+    }
+  }
+
+  async function acceptAllKiTodos() {
+    const remaining: KiTodo[] = [];
+    for (const kt of kiTodos) {
+      const res = await fetch('/api/garten/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: kt.title, dueMonth: kt.dueMonth, category: kt.category, priority: kt.priority }),
+      });
+      if (res.ok) {
+        const todo = await res.json();
+        setTodos((prev) => [todo, ...prev]);
+      } else {
+        remaining.push(kt);
+      }
+    }
+    setKiTodos(remaining);
+  }
+
   const chipBase = 'px-2.5 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer select-none';
   const chipActive = 'bg-green-50 border-green-300 text-green-700';
   const chipInactive = 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300';
@@ -99,7 +160,14 @@ export default function GartenAufgabenPage() {
       <PageHeader
         title="Gartenaufgaben"
         subtitle="Alle To-dos nach Monat, Kategorie und Pflanze"
-        action={<Button onClick={() => setShowAdd(!showAdd)}>+ Aufgabe</Button>}
+        action={
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={fetchKiSuggestions} loading={kiLoading}>
+              🤖 KI-Vorschläge
+            </Button>
+            <Button onClick={() => setShowAdd(!showAdd)}>+ Aufgabe</Button>
+          </div>
+        }
       />
 
       {/* Filter bar */}
@@ -133,6 +201,48 @@ export default function GartenAufgabenPage() {
           )}
         </div>
       </div>
+
+      {/* KI suggestions panel */}
+      {kiError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 flex justify-between items-center">
+          <span>{kiError}</span>
+          <button onClick={() => setKiError(null)} className="text-red-400 hover:text-red-600 text-lg leading-none ml-2">×</button>
+        </div>
+      )}
+      {kiTodos.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-blue-900">
+              🤖 KI-Vorschläge für {MONTHS_DE[currentMonth - 1]}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={acceptAllKiTodos}
+                className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded-lg hover:bg-blue-700 font-medium"
+              >
+                Alle übernehmen
+              </button>
+              <button onClick={() => setKiTodos([])} className="text-blue-400 hover:text-blue-600 text-lg leading-none">×</button>
+            </div>
+          </div>
+          <ul className="space-y-2">
+            {kiTodos.map((kt, i) => (
+              <li key={i} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${PRIORITY_DOT[kt.priority] ?? 'bg-gray-300'}`} />
+                <span className="flex-1 text-sm text-gray-800">{kt.title}</span>
+                <span className="text-xs text-gray-400 shrink-0">{MONTHS_DE[kt.dueMonth - 1]}</span>
+                <span className="text-xs text-gray-400 shrink-0 capitalize">{kt.category}</span>
+                <button
+                  onClick={() => acceptKiTodo(kt, i)}
+                  className="text-xs text-blue-600 hover:text-blue-800 font-medium shrink-0 ml-1"
+                >
+                  Übernehmen
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Add form */}
       {showAdd && (

@@ -233,6 +233,13 @@ export function EinstellungenForm({ initialSettings, apiKeyViaEnv = false }: Pro
             value={settings.houseValueChf ?? ''}
             onChange={(v) => set('houseValueChf', v)}
           />
+          <Field
+            label="Gartenstandort (optional)"
+            placeholder="z.B. Zürich, 8001 Zürich, Kanton Bern"
+            description="Für KI-Gartenaufgaben. Gewählter Detailgrad ist Ihnen überlassen."
+            value={settings.gartenStandort ?? ''}
+            onChange={(v) => set('gartenStandort', v)}
+          />
         </div>
       </Card>
 

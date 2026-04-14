@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { ChatWidget } from '@/components/ChatWidget';
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const pkg = require('../../package.json') as { version: string };
 
@@ -13,6 +14,11 @@ export const metadata: Metadata = {
 };
 
 function getInstallInfo(): { version: string; installedAt: string } {
+  let gitHash = '';
+  try {
+    gitHash = '+' + execSync('git rev-parse --short HEAD', { timeout: 1000 }).toString().trim();
+  } catch { /* git not available */ }
+
   try {
     const lockPath = path.join(process.cwd(), 'package-lock.json');
     const mtime = fs.statSync(lockPath).mtime;
@@ -23,9 +29,9 @@ function getInstallInfo(): { version: string; installedAt: string } {
       hour: '2-digit',
       minute: '2-digit',
     }).format(mtime);
-    return { version: pkg.version, installedAt };
+    return { version: pkg.version + gitHash, installedAt };
   } catch {
-    return { version: pkg.version, installedAt: '—' };
+    return { version: pkg.version + gitHash, installedAt: '—' };
   }
 }
 

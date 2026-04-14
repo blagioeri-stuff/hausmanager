@@ -29,6 +29,7 @@ export default function GartenElementePage() {
   const [sizeM2, setSizeM2] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
     fetch('/api/garten/elemente')
@@ -84,7 +85,23 @@ export default function GartenElementePage() {
         title="Gartenelemente"
         subtitle="Teich, Terrasse, Hochbeet und andere Strukturen"
         action={
-          <Button onClick={openNew}>+ Neues Element</Button>
+          <div className="flex items-center gap-2">
+            <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+              <button onClick={() => setViewMode('list')} title="Listenansicht"
+                className={`px-2.5 py-1.5 ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <button onClick={() => setViewMode('grid')} title="Kachelansicht"
+                className={`px-2.5 py-1.5 ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                </svg>
+              </button>
+            </div>
+            <Button onClick={openNew}>+ Neues Element</Button>
+          </div>
         }
       />
 
@@ -130,7 +147,7 @@ export default function GartenElementePage() {
           <p className="text-4xl mb-3">🏡</p>
           <p>Noch keine Elemente erfasst.</p>
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {elements.map((el) => {
             const typeDef = GARDEN_ELEMENT_TYPES[el.typeKey];
@@ -158,6 +175,44 @@ export default function GartenElementePage() {
               </Card>
             );
           })}
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium text-gray-500">Element</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500 hidden sm:table-cell">Typ</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500 hidden md:table-cell">Fläche</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500 hidden lg:table-cell">Notizen</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-500">Aktionen</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {elements.map((el) => {
+                const typeDef = GARDEN_ELEMENT_TYPES[el.typeKey];
+                return (
+                  <tr key={el.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{typeDef?.icon ?? '📦'}</span>
+                        <span className="font-medium text-gray-900">{el.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs hidden sm:table-cell">{typeDef?.labelDe ?? el.typeKey}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">{el.sizeM2 ? `${el.sizeM2} m²` : '—'}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell truncate max-w-xs">{el.notes ?? '—'}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex gap-3 justify-end">
+                        <button onClick={() => openEdit(el)} className="text-xs text-gray-400 hover:text-gray-700">Bearbeiten</button>
+                        <button onClick={() => deleteElement(el.id, el.name)} className="text-xs text-red-400 hover:text-red-600">Löschen</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

@@ -1,9 +1,19 @@
-import { prisma } from '@/lib/db';
+'use client';
+
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import Link from 'next/link';
 import { PLANT_TYPES, PLANT_TYPE_LIST } from '@/lib/garden-types';
 
-export const dynamic = 'force-dynamic';
+interface Plant {
+  id: string;
+  name: string;
+  latinName: string | null;
+  typeKey: string;
+  locationHint: string | null;
+  status: string;
+  todos: { id: string }[];
+}
 
 const STATUS_COLOR: Record<string, string> = {
   gut: 'bg-green-100 text-green-700',
@@ -18,33 +28,61 @@ const STATUS_LABEL: Record<string, string> = {
   dormant: 'Winterruhe',
 };
 
-export default async function PflanzenPage() {
-  const plants = await prisma.gardenPlant.findMany({
-    orderBy: { name: 'asc' },
-    include: { todos: { where: { done: false } } },
-  });
+export default function PflanzenPage() {
+  const [plants, setPlants] = useState<Plant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  useEffect(() => {
+    fetch('/api/garten/pflanzen')
+      .then((r) => r.json())
+      .then(setPlants)
+      .finally(() => setLoading(false));
+  }, []);
 
   const byType = PLANT_TYPE_LIST.map((t) => ({
     type: t,
     plants: plants.filter((p) => p.typeKey === t.key),
   })).filter((g) => g.plants.length > 0);
 
+  const toggleButtons = (
+    <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+      <button onClick={() => setViewMode('list')} title="Listenansicht"
+        className={`px-2.5 py-1.5 ${viewMode === 'list' ? 'bg-green-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <button onClick={() => setViewMode('grid')} title="Kachelansicht"
+        className={`px-2.5 py-1.5 ${viewMode === 'grid' ? 'bg-green-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+        </svg>
+      </button>
+    </div>
+  );
+
   return (
     <div className="max-w-4xl space-y-6">
       <PageHeader
         title="Pflanzeninventar"
-        subtitle={`${plants.length} Pflanzen erfasst`}
+        subtitle={loading ? 'Lädt…' : `${plants.length} Pflanzen erfasst`}
         action={
-          <Link
-            href="/garten/pflanzen/neu"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
-          >
-            + Neue Pflanze
-          </Link>
+          <div className="flex items-center gap-2">
+            {toggleButtons}
+            <Link
+              href="/garten/pflanzen/neu"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+            >
+              + Neue Pflanze
+            </Link>
+          </div>
         }
       />
 
-      {plants.length === 0 ? (
+      {loading ? (
+        <p className="text-sm text-gray-400">Lädt…</p>
+      ) : plants.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <p className="text-4xl mb-3">🌱</p>
           <p>Noch keine Pflanzen erfasst.</p>
@@ -52,7 +90,7 @@ export default async function PflanzenPage() {
             Erste Pflanze hinzufügen →
           </Link>
         </div>
-      ) : (
+      ) : viewMode === 'list' ? (
         byType.map(({ type, plants: typePlants }) => (
           <div key={type.key}>
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
@@ -98,10 +136,7 @@ export default async function PflanzenPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Link
-                          href={`/garten/pflanzen/${p.id}/bearbeiten`}
-                          className="text-xs text-gray-400 hover:text-green-700 mr-3"
-                        >
+                        <Link href={`/garten/pflanzen/${p.id}/bearbeiten`} className="text-xs text-gray-400 hover:text-green-700 mr-3">
                           Bearbeiten
                         </Link>
                         <Link href={`/garten/pflanzen/${p.id}`} className="text-xs text-green-600 hover:underline">
@@ -112,6 +147,47 @@ export default async function PflanzenPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        ))
+      ) : (
+        // Grid / tile view
+        byType.map(({ type, plants: typePlants }) => (
+          <div key={type.key}>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <span>{type.icon}</span> {type.labelDe} ({typePlants.length})
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {typePlants.map((p) => {
+                const typeDef = PLANT_TYPES[p.typeKey];
+                return (
+                  <Link key={p.id} href={`/garten/pflanzen/${p.id}`}
+                    className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 hover:border-green-300 hover:shadow-md transition-all block">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{typeDef?.icon ?? '🌿'}</span>
+                        <div>
+                          <p className="font-medium text-gray-900 text-sm leading-tight">{p.name}</p>
+                          {p.latinName && <p className="text-xs text-gray-400 italic">{p.latinName}</p>}
+                        </div>
+                      </div>
+                      {p.todos.length > 0 && (
+                        <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium shrink-0">
+                          {p.todos.length} Todo{p.todos.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[p.status]}`}>
+                        {STATUS_LABEL[p.status] ?? p.status}
+                      </span>
+                      {p.locationHint && (
+                        <span className="text-xs text-gray-400 truncate ml-2 max-w-[100px]">{p.locationHint}</span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         ))

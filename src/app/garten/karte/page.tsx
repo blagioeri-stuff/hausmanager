@@ -15,6 +15,13 @@ interface MapItem {
   kind: 'plant' | 'element';
 }
 
+interface PanelTodo {
+  id: string;
+  title: string;
+  priority: string;
+  category: string;
+}
+
 const STATUS_BG: Record<string, string> = {
   gut: 'bg-green-100 border-green-400',
   pflege_nötig: 'bg-yellow-100 border-yellow-400',
@@ -22,17 +29,40 @@ const STATUS_BG: Record<string, string> = {
   dormant: 'bg-gray-100 border-gray-400',
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  gut: 'Gut',
+  pflege_nötig: 'Pflege nötig',
+  krank: 'Krank',
+  dormant: 'Winterruhe',
+};
+
+const STATUS_BADGE: Record<string, string> = {
+  gut: 'bg-green-100 text-green-700',
+  pflege_nötig: 'bg-yellow-100 text-yellow-700',
+  krank: 'bg-red-100 text-red-700',
+  dormant: 'bg-gray-100 text-gray-600',
+};
+
+const PRIORITY_DOT: Record<string, string> = {
+  hoch: 'bg-red-500',
+  normal: 'bg-yellow-400',
+  niedrig: 'bg-gray-300',
+};
+
 export default function GartenKartePage() {
   const [items, setItems] = useState<MapItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [dragging, setDragging] = useState<string | null>(null);
-  const [tooltip, setTooltip] = useState<MapItem | null>(null);
+  const [panelItem, setPanelItem] = useState<MapItem | null>(null);
+  const [panelTodos, setPanelTodos] = useState<PanelTodo[]>([]);
+  const [panelLoading, setPanelLoading] = useState(false);
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [bgUploading, setBgUploading] = useState(false);
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const bgFileRef = useRef<HTMLInputElement>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
+  const didDrag = useRef(false);
 
   useEffect(() => {
     Promise.all([
@@ -67,14 +97,15 @@ export default function GartenKartePage() {
 
   function handleMouseDown(e: React.MouseEvent, item: MapItem) {
     e.preventDefault();
+    didDrag.current = false;
     setDragging(item.id);
-    setTooltip(null);
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     dragOffset.current = { x: e.clientX - rect.left - rect.width / 2, y: e.clientY - rect.top - rect.height / 2 };
   }
 
   function handleMouseMove(e: React.MouseEvent) {
     if (!dragging || !mapRef.current) return;
+    didDrag.current = true;
     const mapRect = mapRef.current.getBoundingClientRect();
     const x = Math.min(100, Math.max(0, ((e.clientX - mapRect.left - dragOffset.current.x) / mapRect.width) * 100));
     const y = Math.min(100, Math.max(0, ((e.clientY - mapRect.top - dragOffset.current.y) / mapRect.height) * 100));
@@ -88,6 +119,27 @@ export default function GartenKartePage() {
       savePosition(item.id, item.kind, item.posX, item.posY);
     }
     setDragging(null);
+  }
+
+  async function handleItemClick(e: React.MouseEvent, item: MapItem) {
+    e.stopPropagation();
+    if (didDrag.current) return;
+    if (panelItem?.id === item.id) {
+      setPanelItem(null);
+      return;
+    }
+    setPanelItem(item);
+    setPanelTodos([]);
+    if (item.kind === 'plant') {
+      setPanelLoading(true);
+      try {
+        const res = await fetch(`/api/garten/todos?plantId=${item.id}&done=false`);
+        const todos = await res.json();
+        setPanelTodos(todos.slice(0, 5));
+      } catch { /* ignore */ } finally {
+        setPanelLoading(false);
+      }
+    }
   }
 
   async function handleBgUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -113,7 +165,7 @@ export default function GartenKartePage() {
     <div className="max-w-4xl space-y-4">
       <PageHeader
         title="Gartenplan"
-        subtitle="Drag & Drop: Pflanzen und Elemente auf der Karte positionieren"
+        subtitle="Drag & Drop zum Positionieren, Klick für Details"
       />
 
       {loading ? (
@@ -123,6 +175,7 @@ export default function GartenKartePage() {
           {/* Map */}
           <div
             ref={mapRef}
+            onClick={() => setPanelItem(null)}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
@@ -163,7 +216,7 @@ export default function GartenKartePage() {
             {/* Background controls */}
             <div className="absolute top-2 right-2 flex gap-1.5 z-10">
               <button
-                onClick={() => bgFileRef.current?.click()}
+                onClick={(e) => { e.stopPropagation(); bgFileRef.current?.click(); }}
                 disabled={bgUploading}
                 className="bg-white/90 hover:bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-gray-600 shadow-sm transition-colors flex items-center gap-1"
               >
@@ -178,7 +231,7 @@ export default function GartenKartePage() {
               </button>
               {bgUrl && (
                 <button
-                  onClick={removeBg}
+                  onClick={(e) => { e.stopPropagation(); removeBg(); }}
                   title="Hintergrundbild entfernen"
                   className="bg-white/90 hover:bg-red-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-red-400 hover:text-red-600 shadow-sm transition-colors"
                 >
@@ -192,16 +245,16 @@ export default function GartenKartePage() {
             {positioned.map((item) => {
               const typeDef = item.kind === 'plant' ? PLANT_TYPES[item.typeKey] : GARDEN_ELEMENT_TYPES[item.typeKey];
               const statusClass = item.status ? STATUS_BG[item.status] ?? 'bg-white border-gray-300' : 'bg-blue-50 border-blue-300';
+              const isSelected = panelItem?.id === item.id;
               return (
                 <div
                   key={item.id}
                   onMouseDown={(e) => handleMouseDown(e, item)}
-                  onMouseEnter={() => !dragging && setTooltip(item)}
-                  onMouseLeave={() => setTooltip(null)}
+                  onClick={(e) => handleItemClick(e, item)}
                   className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing flex flex-col items-center z-20"
                   style={{ left: `${item.posX}%`, top: `${item.posY}%` }}
                 >
-                  <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center text-lg shadow-md ${statusClass}`}>
+                  <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center text-lg shadow-md transition-all ${statusClass} ${isSelected ? 'scale-125 ring-2 ring-blue-400 ring-offset-1' : ''}`}>
                     {typeDef?.icon ?? '🌿'}
                   </div>
                   <span className="mt-0.5 text-[10px] text-gray-800 bg-white/85 px-1 rounded max-w-[80px] truncate text-center leading-tight shadow-sm">
@@ -211,24 +264,71 @@ export default function GartenKartePage() {
               );
             })}
 
-            {/* Tooltip */}
-            {tooltip && (
-              <div className="absolute bottom-3 left-3 bg-white rounded-lg shadow-lg p-3 text-xs pointer-events-none z-30 min-w-[140px]">
-                <p className="font-semibold text-gray-900">{tooltip.name}</p>
-                <p className="text-gray-500">
-                  {tooltip.kind === 'plant'
-                    ? PLANT_TYPES[tooltip.typeKey]?.labelDe
-                    : GARDEN_ELEMENT_TYPES[tooltip.typeKey]?.labelDe}
-                </p>
-                {tooltip.kind === 'plant' && tooltip.status && (
-                  <p className="text-gray-400 mt-0.5">Status: {tooltip.status.replace('_', ' ')}</p>
+            {/* Persistent click panel */}
+            {panelItem && (
+              <div
+                className="absolute bottom-3 right-3 z-30 bg-white rounded-xl shadow-lg p-4 min-w-[220px] max-w-[280px]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xl shrink-0">
+                      {panelItem.kind === 'plant'
+                        ? PLANT_TYPES[panelItem.typeKey]?.icon ?? '🌿'
+                        : GARDEN_ELEMENT_TYPES[panelItem.typeKey]?.icon ?? '📦'}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm leading-tight truncate">{panelItem.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {panelItem.kind === 'plant'
+                          ? PLANT_TYPES[panelItem.typeKey]?.labelDe
+                          : GARDEN_ELEMENT_TYPES[panelItem.typeKey]?.labelDe}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setPanelItem(null)}
+                    className="text-gray-400 hover:text-gray-600 text-xl leading-none shrink-0 -mt-0.5"
+                    title="Schliessen"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {panelItem.kind === 'plant' && panelItem.status && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[panelItem.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {STATUS_LABEL[panelItem.status] ?? panelItem.status}
+                  </span>
                 )}
-                <Link
-                  href={tooltip.kind === 'plant' ? `/garten/pflanzen/${tooltip.id}` : `/garten/elemente`}
-                  className="text-green-600 hover:underline mt-1 block pointer-events-auto"
-                >
-                  Details →
-                </Link>
+
+                <div className="mt-3 border-t border-gray-100 pt-2">
+                  <p className="text-xs font-medium text-gray-500 mb-1.5">Offene Aufgaben</p>
+                  {panelLoading ? (
+                    <p className="text-xs text-gray-400">Lädt…</p>
+                  ) : panelItem.kind !== 'plant' ? (
+                    <p className="text-xs text-gray-400 italic">Keine Aufgaben für Elemente</p>
+                  ) : panelTodos.length === 0 ? (
+                    <p className="text-xs text-gray-400 italic">Keine offenen Aufgaben</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {panelTodos.map((t) => (
+                        <li key={t.id} className="flex items-center gap-1.5 text-xs text-gray-700">
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${PRIORITY_DOT[t.priority] ?? 'bg-gray-300'}`} />
+                          <span className="truncate">{t.title}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div className="mt-3 border-t border-gray-100 pt-2">
+                  <Link
+                    href={panelItem.kind === 'plant' ? `/garten/pflanzen/${panelItem.id}` : `/garten/elemente`}
+                    className="text-sm text-green-600 hover:underline font-medium"
+                  >
+                    Details →
+                  </Link>
+                </div>
               </div>
             )}
 
@@ -285,7 +385,7 @@ export default function GartenKartePage() {
                   );
                 })}
               </div>
-              <p className="text-xs text-gray-400 mt-2">Klicken um auf der Karte zu platzieren, dann per Drag & Drop verschieben.</p>
+              <p className="text-xs text-gray-400 mt-2">Klicken um auf der Karte zu platzieren, dann per Drag &amp; Drop verschieben.</p>
             </div>
           )}
         </>

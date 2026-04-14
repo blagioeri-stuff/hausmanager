@@ -64,7 +64,7 @@ export function DashboardCharts({ rawComponents, projection, enriched }: Props) 
             </button>
           )}
         </div>
-        <StatusGrid components={displayComponents} />
+        <StatusGrid components={displayComponents} onYearSelect={handleYearSelect} selectedYear={selectedYear ?? undefined} />
       </Card>
     </>
   );

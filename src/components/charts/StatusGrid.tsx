@@ -9,6 +9,8 @@ import type { EnrichedComponent } from '@/types';
 
 interface Props {
   components: EnrichedComponent[];
+  onYearSelect?: (year: number) => void;
+  selectedYear?: number;
 }
 
 function statusLabel(c: EnrichedComponent): string {
@@ -33,7 +35,7 @@ type StatusFilter = 'green' | 'yellow' | 'red';
 type DueFilter = 5 | 10 | 15;
 type RenovationType = 'planned' | 'calculated';
 
-export function StatusGrid({ components: initialComponents }: Props) {
+export function StatusGrid({ components: initialComponents, onYearSelect, selectedYear }: Props) {
   const [components, setComponents] = useState<EnrichedComponent[]>(initialComponents);
   const [statusFilters, setStatusFilters] = useState<Set<StatusFilter>>(new Set());
   const [typeFilters, setTypeFilters] = useState<Set<string>>(new Set());
@@ -221,7 +223,7 @@ export function StatusGrid({ components: initialComponents }: Props) {
         </p>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" style={{ minHeight: '180px' }}>
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
@@ -273,10 +275,14 @@ export function StatusGrid({ components: initialComponents }: Props) {
                         <span className="text-red-600 font-medium text-xs">Fällig!</span>
                       ) : notPlanned ? (
                         <span className="text-gray-400 text-sm italic line-through">{c.replacementYear} <span className="text-xs">({c.yearsRemaining} J.)</span></span>
-                      ) : c.plannedRenovationYear !== null ? (
-                        <span className="text-gray-900 text-sm font-medium">{c.replacementYear} <span className="text-xs text-gray-400">({c.yearsRemaining} J.)</span></span>
                       ) : (
-                        <span className="text-gray-400 text-sm italic">{c.replacementYear} <span className="text-xs">({c.yearsRemaining} J.)</span></span>
+                        <button
+                          onClick={() => onYearSelect?.(c.replacementYear)}
+                          title={`Komponentenstatus im Jahr ${c.replacementYear} anzeigen`}
+                          className={`text-sm font-medium transition-colors ${selectedYear === c.replacementYear ? 'text-blue-700 underline' : 'text-gray-700 hover:text-blue-600 hover:underline'} ${c.plannedRenovationYear !== null ? '' : 'italic text-gray-400'}`}
+                        >
+                          {c.replacementYear} <span className="text-xs font-normal text-gray-400">({c.yearsRemaining} J.)</span>
+                        </button>
                       )}
                     </td>
                     <td className="py-2.5 pr-4 text-right hidden md:table-cell whitespace-nowrap">

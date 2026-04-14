@@ -326,42 +326,76 @@ export function DokumentationClient({ docs, components }: { docs: HouseDocument[
       )}
 
       {/* GRID VIEW */}
-      {viewMode === 'grid' && grouped.length > 0 && grouped.map((group) => (
-        <div key={group.value}>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{group.label}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {group.docs.map((doc) => {
-              const href = doc.externalUrl ?? (doc.storedName ? `/api/upload/${doc.storedName}` : null);
-              return (
-                <Card key={doc.id}>
-                  <div className="flex items-start gap-3">
-                    <div className="shrink-0 mt-0.5">
-                      <DocIcon mimeType={doc.mimeType} externalUrl={doc.externalUrl} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{doc.title}</p>
-                      {doc.description && <p className="text-xs text-gray-500 mt-0.5 truncate">{doc.description}</p>}
-                      <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
-                        <span className="text-xs text-gray-400">{new Date(doc.uploadedAt).toLocaleDateString('de-CH')}</span>
-                        {doc.component && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700">{doc.component.name}</span>
-                        )}
-                        {doc.sizeBytes && <span className="text-xs text-gray-300">{(doc.sizeBytes / 1024).toFixed(0)} KB</span>}
+      {viewMode === 'grid' && filtered.length > 0 && (
+        <>
+          {grouped.map((group) => (
+            <div key={group.value}>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{group.label}</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {group.docs.map((doc) => {
+                  const href = doc.externalUrl ?? (doc.storedName ? `/api/upload/${doc.storedName}` : null);
+                  return (
+                    <Card key={doc.id}>
+                      <div className="flex items-start gap-3">
+                        <div className="shrink-0 mt-0.5">
+                          <DocIcon mimeType={doc.mimeType} externalUrl={doc.externalUrl} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{doc.title}</p>
+                          {doc.description && <p className="text-xs text-gray-500 mt-0.5 truncate">{doc.description}</p>}
+                          <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
+                            <span className="text-xs text-gray-400">{new Date(doc.uploadedAt).toLocaleDateString('de-CH')}</span>
+                            {doc.component && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700">{doc.component.name}</span>
+                            )}
+                            {doc.sizeBytes && <span className="text-xs text-gray-300">{(doc.sizeBytes / 1024).toFixed(0)} KB</span>}
+                          </div>
+                          <div className="flex gap-3 mt-2">
+                            {href && (
+                              <a href={href} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">Öffnen</a>
+                            )}
+                            <button onClick={() => handleDelete(doc.id)} disabled={deleting === doc.id} className="text-xs text-red-500 hover:underline disabled:opacity-50">Löschen</button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex gap-3 mt-2">
-                        {href && (
-                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">Öffnen</a>
-                        )}
-                        <button onClick={() => handleDelete(doc.id)} disabled={deleting === doc.id} className="text-xs text-red-500 hover:underline disabled:opacity-50">Löschen</button>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          {/* Uncategorized docs in grid view */}
+          {filtered.filter((d) => !d.category).length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Ohne Kategorie</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {filtered.filter((d) => !d.category).map((doc) => {
+                  const href = doc.externalUrl ?? (doc.storedName ? `/api/upload/${doc.storedName}` : null);
+                  return (
+                    <Card key={doc.id}>
+                      <div className="flex items-start gap-3">
+                        <div className="shrink-0 mt-0.5">
+                          <DocIcon mimeType={doc.mimeType} externalUrl={doc.externalUrl} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{doc.title}</p>
+                          {doc.description && <p className="text-xs text-gray-500 mt-0.5 truncate">{doc.description}</p>}
+                          <div className="flex gap-3 mt-2">
+                            {href && (
+                              <a href={href} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">Öffnen</a>
+                            )}
+                            <button onClick={() => handleDelete(doc.id)} disabled={deleting === doc.id} className="text-xs text-red-500 hover:underline disabled:opacity-50">Löschen</button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Upload modal */}
       {modalMode === 'upload' && (

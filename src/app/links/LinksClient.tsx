@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { normalizeUrl } from '@/lib/utils';
 
 const LINK_CATEGORIES = [
   'Behörden & Ämter',
@@ -81,7 +82,7 @@ export function LinksClient({ links: initialLinks }: { links: LinkItem[] }) {
     setSaving(true);
     setError(null);
     try {
-      const payload = { title: form.title, url: form.url, description: form.description || null, category: form.category || null };
+      const payload = { title: form.title, url: normalizeUrl(form.url), description: form.description || null, category: form.category || null };
       let res;
       if (editing) {
         res = await fetch(`/api/links/${editing}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -184,11 +185,11 @@ export function LinksClient({ links: initialLinks }: { links: LinkItem[] }) {
               />
               <Input
                 label="URL"
-                type="url"
+                type="text"
                 required
                 value={form.url}
                 onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
-                placeholder="https://..."
+                placeholder="z.B. gemeinde.ch oder https://..."
               />
             </div>
             <Input

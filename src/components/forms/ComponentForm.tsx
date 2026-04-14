@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -52,6 +52,7 @@ export function ComponentForm({ component, prefill }: Props) {
     register,
     handleSubmit,
     watch,
+    setValue,
     control,
     formState: { errors },
   } = useForm<FormData>({
@@ -71,9 +72,21 @@ export function ComponentForm({ component, prefill }: Props) {
   });
 
   const watchedType = watch('typeKey');
+  const watchedRenovationPlanned = watch('renovationPlanned');
+  const prevRenovationPlanned = useRef(watchedRenovationPlanned);
+
   useEffect(() => {
     setSelectedType(watchedType);
   }, [watchedType]);
+
+  // When checkbox is checked → clear manual plannedRenovationYear
+  useEffect(() => {
+    if (watchedRenovationPlanned && !prevRenovationPlanned.current) {
+      setValue('plannedRenovationYear', null);
+      setValue('plannedRenovationCostChf', null);
+    }
+    prevRenovationPlanned.current = watchedRenovationPlanned;
+  }, [watchedRenovationPlanned, setValue]);
 
   const typeDef = selectedType ? COMPONENT_TYPES[selectedType] : null;
 
@@ -179,7 +192,26 @@ export function ComponentForm({ component, prefill }: Props) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-gray-50 border border-gray-200">
+        <input
+          type="checkbox"
+          id="renovationPlanned"
+          {...register('renovationPlanned')}
+          className="h-4 w-4 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+        <div>
+          <label htmlFor="renovationPlanned" className="text-sm font-medium text-gray-700 cursor-pointer">
+            Renovation zum errechneten Zeitpunkt geplant
+          </label>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {watchedRenovationPlanned
+              ? 'Erneuerungsjahr wird automatisch aus Baujahr + Lebensdauer berechnet.'
+              : 'Kein Erneuerungsdatum geplant — optional manuelles Jahr und Kosten eintragen.'}
+          </p>
+        </div>
+      </div>
+
+      <div className={`grid grid-cols-2 gap-4 transition-opacity ${watchedRenovationPlanned ? 'opacity-40 pointer-events-none' : ''}`}>
         <Controller
           name="plannedRenovationYear"
           control={control}
@@ -188,11 +220,12 @@ export function ComponentForm({ component, prefill }: Props) {
               label="Geplantes Renovationsjahr — optional"
               type="number"
               placeholder="z.B. 2031"
-              hint="Überschreibt das berechnete Erneuerungsjahr"
+              hint={watchedRenovationPlanned ? 'Wird automatisch berechnet' : 'Überschreibt das berechnete Erneuerungsjahr'}
               error={errors.plannedRenovationYear?.message}
               value={field.value ?? ''}
               onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value, 10))}
               onBlur={field.onBlur}
+              disabled={watchedRenovationPlanned}
             />
           )}
         />
@@ -204,11 +237,12 @@ export function ComponentForm({ component, prefill }: Props) {
               label="Geplante Kosten (CHF) — optional"
               type="number"
               placeholder={typeDef ? String(typeDef.defaultCostChf) : ''}
-              hint="Überschreibt Standardkosten und individuelle Kosten"
+              hint={watchedRenovationPlanned ? 'Wird automatisch berechnet' : 'Überschreibt Standardkosten und individuelle Kosten'}
               error={errors.plannedRenovationCostChf?.message}
               value={field.value ?? ''}
               onChange={(e) => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))}
               onBlur={field.onBlur}
+              disabled={watchedRenovationPlanned}
             />
           )}
         />
@@ -228,18 +262,6 @@ export function ComponentForm({ component, prefill }: Props) {
         placeholder="Marke, Modell, besondere Merkmale…"
         {...register('notes')}
       />
-
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="renovationPlanned"
-          {...register('renovationPlanned')}
-          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-        />
-        <label htmlFor="renovationPlanned" className="text-sm text-gray-700">
-          Renovation zum errechneten Zeitpunkt geplant
-        </label>
-      </div>
 
       <div className="flex gap-3 pt-2">
         <Button type="submit" loading={loading}>

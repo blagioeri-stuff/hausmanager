@@ -20,10 +20,17 @@ export function enrichComponent(
   const ageYears = currentYear - component.buildYear;
   const ageRatio = Math.min(Math.max(ageYears / effectiveLifetimeYrs, 0), 1);
 
-  const annualSavingsChf = effectiveCostChf / effectiveLifetimeYrs;
-  const totalReserveNeededChf = annualSavingsChf * Math.max(yearsRemaining, 0);
+  // renovationPlanned = false with no manual year/cost → exclude from cost projections
+  const hasManualRenovation =
+    !component.renovationPlanned &&
+    component.plannedRenovationYear !== null &&
+    component.plannedRenovationCostChf !== null;
+  const includeInCosts = component.renovationPlanned !== false || hasManualRenovation;
+
+  const annualSavingsChf = includeInCosts ? effectiveCostChf / effectiveLifetimeYrs : 0;
+  const totalReserveNeededChf = includeInCosts ? annualSavingsChf * Math.max(yearsRemaining, 0) : 0;
   // SOLL: what should have been saved up by now (proportional to age)
-  const sollReserveChf = effectiveCostChf * Math.min(ageYears / effectiveLifetimeYrs, 1);
+  const sollReserveChf = includeInCosts ? effectiveCostChf * Math.min(ageYears / effectiveLifetimeYrs, 1) : 0;
 
   const statusColor: 'green' | 'yellow' | 'red' =
     ageRatio < 0.5 ? 'green' : ageRatio < 0.8 ? 'yellow' : 'red';
@@ -149,9 +156,15 @@ export function buildReserveProjection(
   const rawComponents = enriched as unknown as RawComponent[];
 
   // Split expenditures into user-planned vs lifetime-calculated per year
+  // Skip components where renovation is not planned and no manual year/cost is set
   const plannedByYear = new Map<number, number>();
   const calculatedByYear = new Map<number, number>();
   for (const c of enriched) {
+    const hasManualRenovation =
+      !c.renovationPlanned &&
+      c.plannedRenovationYear !== null &&
+      c.plannedRenovationCostChf !== null;
+    if (!c.renovationPlanned && !hasManualRenovation) continue; // excluded from cost projections
     const isPlanned = c.plannedRenovationYear !== null;
     const target = isPlanned ? plannedByYear : calculatedByYear;
     const existing = target.get(c.replacementYear) ?? 0;
