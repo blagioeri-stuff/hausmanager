@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 import Link from 'next/link';
 import { PLANT_TYPES, GARDEN_ELEMENT_TYPES, SEASONAL_TODOS, MONTHS_DE, PLANT_STATUS_OPTIONS } from '@/lib/garden-types';
+import { WetterWidget } from '@/components/garden/WetterWidget';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +48,9 @@ export default async function GartenPage() {
           </Link>
         }
       />
+
+      {/* Weather Widget */}
+      <WetterWidget winterProtectionCount={winterProtectionPlants.length} />
 
       {/* Quick Nav */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

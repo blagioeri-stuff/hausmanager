@@ -3,12 +3,19 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { MONTHS_DE, TODO_CATEGORIES } from '@/lib/garden-types';
+import { MONTHS_DE, TODO_CATEGORIES, PLANT_TYPES } from '@/lib/garden-types';
 import type { RawGardenPhoto, RawGardenTodo } from '@/types';
+
+interface CompanionSuggestion {
+  name: string;
+  type: string;
+  reason: string;
+}
 
 interface PlantWithRelations {
   id: string;
   name: string;
+  typeKey: string;
   photos: RawGardenPhoto[];
   todos: (RawGardenTodo & { plant?: { id: string; name: string } | null; element?: { id: string; name: string } | null })[];
 }
@@ -32,6 +39,9 @@ export function GardenPlantDetailClient({ plant }: Props) {
   const [newTodoCategory, setNewTodoCategory] = useState('pflege');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photos, setPhotos] = useState(plant.photos);
+  const [companionLoading, setCompanionLoading] = useState(false);
+  const [companionSuggestions, setCompanionSuggestions] = useState<CompanionSuggestion[]>([]);
+  const [companionError, setCompanionError] = useState<string | null>(null);
 
   async function toggleTodo(id: string, done: boolean) {
     setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, done, doneAt: done ? new Date().toISOString() : null } : t)));
@@ -84,6 +94,29 @@ export function GardenPlantDetailClient({ plant }: Props) {
     if (!confirm('Foto löschen?')) return;
     await fetch(`/api/garten/pflanzen/${plant.id}/photos?photoId=${photoId}`, { method: 'DELETE' });
     setPhotos((prev) => prev.filter((p) => p.id !== photoId));
+  }
+
+  async function fetchCompanionSuggestions() {
+    setCompanionLoading(true);
+    setCompanionError(null);
+    setCompanionSuggestions([]);
+    try {
+      const res = await fetch('/api/garten/pflanzen/companion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plantId: plant.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCompanionError(data.error ?? 'Fehler beim Laden der Vorschläge.');
+      } else {
+        setCompanionSuggestions(data.suggestions ?? []);
+      }
+    } catch {
+      setCompanionError('Netzwerkfehler.');
+    } finally {
+      setCompanionLoading(false);
+    }
   }
 
   async function deletePlant() {
@@ -225,6 +258,46 @@ export function GardenPlantDetailClient({ plant }: Props) {
               ))}
             </div>
           </details>
+        )}
+      </div>
+
+      {/* Companion Planting */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Passende Ergänzungen</h2>
+            <p className="text-xs text-gray-400 mt-0.5">KI analysiert Begleitpflanzen (Companion Planting)</p>
+          </div>
+          <Button variant="secondary" size="sm" onClick={fetchCompanionSuggestions} loading={companionLoading}>
+            🌿 Vorschläge laden
+          </Button>
+        </div>
+
+        {companionError && (
+          <p className="text-sm text-red-600 mb-2">{companionError}</p>
+        )}
+
+        {companionSuggestions.length > 0 && (
+          <div className="space-y-3">
+            {companionSuggestions.map((s, i) => {
+              const typeDef = PLANT_TYPES[s.type];
+              return (
+                <div key={i} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-100">
+                  <span className="text-xl shrink-0">{typeDef?.icon ?? '🌿'}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{s.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{s.reason}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {!companionLoading && companionSuggestions.length === 0 && !companionError && (
+          <p className="text-sm text-gray-400 text-center py-3">
+            Klicke auf „Vorschläge laden" für KI-basierte Empfehlungen.
+          </p>
         )}
       </div>
 
