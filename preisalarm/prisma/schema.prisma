@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  notes       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  trackedUrls TrackedUrl[]
+  alerts      Alert[]
+}
+
+model TrackedUrl {
+  id                 String         @id @default(cuid())
+  productId          String
+  product            Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url                String
+  shopName           String?
+  shopDomain         String?
+  currency           String         @default("CHF")
+  lastPrice          Float?
+  lastChecked        DateTime?
+  checkIntervalHours Float          @default(12)
+  active             Boolean        @default(true)
+  detectionMethod    String?
+  cssSelector        String?
+  errorCount         Int            @default(0)
+  lastError          String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  pricePoints        PricePoint[]
+  notifications      Notification[]
+}
+
+model PricePoint {
+  id           String     @id @default(cuid())
+  trackedUrlId String
+  trackedUrl   TrackedUrl @relation(fields: [trackedUrlId], references: [id], onDelete: Cascade)
+  price        Float
+  currency     String     @default("CHF")
+  available    Boolean    @default(true)
+  timestamp    DateTime   @default(now())
+}
+
+model Alert {
+  id             String         @id @default(cuid())
+  productId      String
+  product        Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  targetPrice    Float
+  currency       String         @default("CHF")
+  active         Boolean        @default(true)
+  notifyEmail    Boolean        @default(true)
+  notifyTelegram Boolean        @default(true)
+  lastTriggered  DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  notifications  Notification[]
+}
+
+model Notification {
+  id           String      @id @default(cuid())
+  alertId      String?
+  alert        Alert?      @relation(fields: [alertId], references: [id], onDelete: SetNull)
+  trackedUrlId String?
+  trackedUrl   TrackedUrl? @relation(fields: [trackedUrlId], references: [id], onDelete: SetNull)
+  price        Float
+  currency     String      @default("CHF")
+  channel      String
+  sentAt       DateTime    @default(now())
+  success      Boolean
+  errorMessage String?
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model SysLog {
+  id        String   @id @default(cuid())
+  level     String   @default("info")
+  category  String   @default("system")
+  message   String
+  detail    String?
+  createdAt DateTime @default(now())
+}
+
+model ShopProfile {
+  id                   String   @id @default(cuid())
+  domain               String   @unique
+  name                 String
+  priceSelector        String
+  currencySelector     String?
+  availabilitySelector String?
+  notes                String?
+  active               Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}

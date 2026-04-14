@@ -1,0 +1,31 @@
+services:
+  preisalarm:
+    build: .
+    container_name: preisalarm
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    volumes:
+      - preisalarm_data:/app/data
+    environment:
+      DATABASE_URL: "file:/app/data/preisalarm.db"
+      NODE_ENV: production
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+      PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium-browser
+      # Optional — can also be set via Settings UI:
+      # CLAUDE_API_KEY: "sk-ant-..."
+      # SMTP_HOST: "smtp.fastmail.com"
+      # SMTP_PORT: "587"
+      # SMTP_USER: "deine@email.ch"
+      # SMTP_PASS: "..."
+      # SMTP_FROM: "Preisalarm <deine@email.ch>"
+      # NOTIFY_EMAIL: "deine@email.ch"
+      # TELEGRAM_TOKEN: "123456:ABC-..."
+      # TELEGRAM_CHAT_ID: "123456789"
+    mem_limit: 1g
+    cpus: "1.0"
+    shm_size: "256m"
+
+volumes:
+  preisalarm_data:
+    driver: local
