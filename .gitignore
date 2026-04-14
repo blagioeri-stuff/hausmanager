@@ -49,5 +49,8 @@ next-env.d.ts
 /public/uploads/*
 !/public/uploads/.gitkeep
 
+# Runtime data (Docker volumes, backups)
+/data/
+
 # env
 .env
