@@ -161,3 +161,12 @@ model GardenTodo {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 }
+
+model SystemLog {
+  id        String   @id @default(cuid())
+  level     String   @default("info")    // info | warn | error
+  category  String   @default("system")  // system | backup | ki | garten | einstellungen | import
+  message   String
+  detail    String?
+  createdAt DateTime @default(now())
+}

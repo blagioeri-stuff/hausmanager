@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import Anthropic from '@anthropic-ai/sdk';
 import { PLANT_TYPES } from '@/lib/garden-types';
+import { writeLog } from '@/lib/log';
 
 export async function POST(request: Request) {
   try {
@@ -62,8 +63,10 @@ Antworte NUR als JSON-Array (kein Markdown):
     }
 
     const suggestions = JSON.parse(jsonMatch[0]) as { name: string; type: string; reason: string }[];
+    await writeLog('info', 'ki', `Companion Planting für "${targetPlant.name}": ${suggestions.length} Vorschläge`);
     return NextResponse.json({ suggestions });
   } catch (e) {
+    await writeLog('error', 'ki', 'Fehler beim Companion Planting', e instanceof Error ? e.message : String(e));
     console.error('Companion planting error:', e);
     return NextResponse.json({ error: 'Fehler beim Generieren der Vorschläge.' }, { status: 500 });
   }

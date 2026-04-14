@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import Anthropic from '@anthropic-ai/sdk';
 import { PLANT_TYPES, MONTHS_DE } from '@/lib/garden-types';
+import { writeLog } from '@/lib/log';
 
 export async function GET() {
   try {
@@ -93,8 +94,10 @@ dueMonth muss eine Zahl von 1–12 sein.`;
     }
 
     const todos = JSON.parse(jsonMatch[0]) as { title: string; category: string; priority: string; dueMonth: number }[];
+    await writeLog('info', 'ki', `KI-Gartenaufgaben generiert: ${todos.length} Vorschläge für ${monthName}`);
     return NextResponse.json({ todos });
   } catch (e) {
+    await writeLog('error', 'ki', 'Fehler beim Generieren der KI-Gartenaufgaben', e instanceof Error ? e.message : String(e));
     console.error('KI Aufgaben Fehler:', e);
     return NextResponse.json({ error: 'Fehler beim Generieren der KI-Vorschläge.' }, { status: 500 });
   }

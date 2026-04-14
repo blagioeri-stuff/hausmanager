@@ -94,6 +94,15 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    href: '/log',
+    label: 'Log',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h10M4 18h6" />
+      </svg>
+    ),
+  },
 ];
 
 const einstellungenItem = {

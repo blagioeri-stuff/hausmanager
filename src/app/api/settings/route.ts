@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { writeLog } from '@/lib/log';
 
 const UpdateSchema = z.record(z.string(), z.string());
 
@@ -21,5 +22,9 @@ export async function POST(req: NextRequest) {
     prisma.setting.upsert({ where: { key }, update: { value }, create: { key, value } })
   );
   await prisma.$transaction(ops);
+  const changedKeys = Object.keys(parsed.data).filter((k) => k !== 'claudeApiKey');
+  if (changedKeys.length > 0) {
+    await writeLog('info', 'einstellungen', `Einstellungen gespeichert: ${changedKeys.join(', ')}`);
+  }
   return NextResponse.json({ ok: true });
 }
