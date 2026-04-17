@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { formatChf } from '@/lib/formatters';
@@ -37,6 +37,9 @@ type RenovationType = 'planned' | 'calculated';
 
 export function StatusGrid({ components: initialComponents, onYearSelect, selectedYear }: Props) {
   const [components, setComponents] = useState<EnrichedComponent[]>(initialComponents);
+  useEffect(() => {
+    setComponents(initialComponents);
+  }, [initialComponents]);
   const [statusFilters, setStatusFilters] = useState<Set<StatusFilter>>(new Set());
   const [typeFilters, setTypeFilters] = useState<Set<string>>(new Set());
   const [dueFilter, setDueFilter] = useState<DueFilter | null>(null);
