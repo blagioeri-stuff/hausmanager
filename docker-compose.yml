@@ -3,17 +3,38 @@ services:
     build: .
     container_name: hausmanager
     restart: unless-stopped
-    ports:
-      - "3000:3000"
-    volumes:
-      - hausmanager_data:/app/data
-      - hausmanager_uploads:/app/uploads
+    expose:
+      - "3000"
+    env_file:
+      - .env
     environment:
       DATABASE_URL: "file:/app/data/hausmanager.db"
       UPLOAD_DIR: "/app/uploads"
+      BACKUP_DIR: "/app/data/backups"
       NODE_ENV: production
+    volumes:
+      - hausmanager_data:/app/data
+      - hausmanager_uploads:/app/uploads
+    networks:
+      - hm_net
     mem_limit: 512m
     cpus: '0.5'
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: hausmanager-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    env_file:
+      - .env
+    networks:
+      - hm_net
+    depends_on:
+      - hausmanager
+
+networks:
+  hm_net:
+    driver: bridge
 
 volumes:
   hausmanager_data:

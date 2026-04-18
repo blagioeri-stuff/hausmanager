@@ -1,36 +1,124 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hausmanager
 
-## Getting Started
+Next.js 14 App für Schweizer Hausbesitzer: Rücklagenplanung, Garten, Dokumente, KI-Assistenz.
+SQLite + Prisma. Tailwind. Optimiert für Self-Hosting auf einem Synology NAS hinter einem Cloudflare-Tunnel.
 
-First, run the development server:
+## Lokale Entwicklung
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env       # DATABASE_URL reicht für lokale Tests
+npm install
+npm run db:migrate
+npm run dev                # http://localhost:3000
+npm test                   # Vitest
+npx tsc --noEmit           # TypeScript-Check
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Production-Deployment auf Synology NAS
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Voraussetzungen
+- DSM 7.2+ mit installiertem **Container Manager**
+- SSH aktiviert (Systemsteuerung → Terminal & SNMP)
+- Cloudflare-Account mit eigener Domain (für den Tunnel)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Schritt 1 — Passwort-Hash erzeugen (auf dem Dev-Rechner)
 
-## Learn More
+```bash
+node scripts/hash-password.mjs "DEIN-PASSWORT"
+```
 
-To learn more about Next.js, take a look at the following resources:
+Der Befehl druckt drei Zeilen (`APP_PASSWORD_HASH`, `SESSION_SECRET`, `SESSION_MAX_AGE`).
+Sicher kopieren — wird gleich auf dem NAS gebraucht.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Schritt 2 — Cloudflare Tunnel anlegen
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. https://one.dash.cloudflare.com → **Networks → Tunnels → Create a tunnel**
+2. Connector: **Cloudflared**, Name z.B. `hausmanager-nas`
+3. Tunnel-Token kopieren (wird gleich gebraucht)
+4. Public Hostname:
+   - Subdomain: `hausmanager`
+   - Domain: deine Cloudflare-verwaltete Domain
+   - Service: HTTP → `hausmanager:3000` (Container-Name aus compose, **nicht localhost**)
+5. Speichern (DNS wird automatisch gesetzt).
 
-## Deploy on Vercel
+### Schritt 3 — Verzeichnis auf dem NAS anlegen
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+ssh deinuser@<NAS-IP>
+sudo mkdir -p /volume1/docker/hausmanager
+sudo chown $(whoami) /volume1/docker/hausmanager
+cd /volume1/docker/hausmanager
+git clone https://github.com/<dein-user>/hausmanager.git .
+git checkout claude/nas-deployment-plan-ZkkqP
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Schritt 4 — `.env` schreiben
+
+Im Verzeichnis `/volume1/docker/hausmanager`:
+
+```
+APP_PASSWORD_HASH='<aus Schritt 1>'
+SESSION_SECRET='<aus Schritt 1>'
+SESSION_MAX_AGE=2592000
+TUNNEL_TOKEN='<aus Schritt 2>'
+CLAUDE_API_KEY=sk-ant-...
+```
+
+```bash
+chmod 600 .env
+```
+
+### Schritt 5 — Erststart
+
+```bash
+docker compose build
+docker compose up -d
+docker compose logs -f hausmanager   # bis "Ready in …"
+docker compose logs -f cloudflared   # "Registered tunnel connection"
+```
+
+Im Browser: `https://hausmanager.deine-domain.tld` → Login-Seite.
+
+## Updates ausrollen
+
+Auf dem Dev-Rechner committen und pushen. Auf dem NAS:
+
+```bash
+ssh deinuser@<NAS-IP>
+cd /volume1/docker/hausmanager
+./deploy.sh
+```
+
+Dauert 1–3 min, alter Container läuft während des Builds weiter.
+Standard-Branch ist in `deploy.sh` hinterlegt; mit Env-Var überschreibbar:
+
+```bash
+HAUSMANAGER_BRANCH=main ./deploy.sh
+```
+
+## Backups
+
+- **Automatisch**: täglich (`node-cron`) als `<ts>_auto.db` + `<ts>_auto_uploads.tar.gz` im `BACKUP_DIR`. Es werden die letzten 10 behalten.
+- **Manuell**: `/api/backup` POST `{ "action": "create" }` oder über die Einstellungen-Seite.
+- **Restore (DB)**: über die Einstellungen-Seite. Uploads müssen manuell entpackt werden:
+  ```bash
+  docker compose exec hausmanager tar -xzf /app/data/backups/<datei>_uploads.tar.gz -C /
+  ```
+- **Off-NAS**: zusätzlich Synology **Hyper Backup** auf das Verzeichnis `/volume1/docker/hausmanager/` plus Docker-Volumes einrichten.
+
+## Environment-Variablen (Übersicht)
+
+| Variable             | Pflicht | Zweck                                              |
+|----------------------|:-------:|----------------------------------------------------|
+| `DATABASE_URL`       |   ✓     | SQLite-Datei, Docker: `file:/app/data/...`         |
+| `APP_PASSWORD_HASH`  |   ✓     | scrypt-Hash des Login-Passworts                    |
+| `SESSION_SECRET`     |   ✓     | HMAC-Secret für das Session-Cookie                 |
+| `SESSION_MAX_AGE`    |         | Session-Dauer in Sekunden (Standard 30 Tage)       |
+| `TUNNEL_TOKEN`       |   ✓     | Cloudflare-Tunnel-Token (nur NAS)                  |
+| `CLAUDE_API_KEY`     |         | Claude-API-Key (sonst aus DB-Einstellungen)        |
+| `UPLOAD_DIR`         |         | Upload-Verzeichnis (Docker: `/app/uploads`)        |
+| `BACKUP_DIR`         |         | Backup-Verzeichnis (Docker: `/app/data/backups`)   |
+
+## Architektur
+
+Siehe `CLAUDE.md` für eine vollständige Übersicht über Datenmodelle, API-Routen und Schlüsseldateien.
