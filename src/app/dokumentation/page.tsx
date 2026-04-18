@@ -4,7 +4,7 @@ import { DokumentationClient } from './DokumentationClient';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DokumentationPage() {
+export default async function DokumentationPage({ searchParams }: { searchParams: { componentId?: string } }) {
   const [docs, components] = await Promise.all([
     prisma.houseDocument.findMany({
       include: { component: { select: { id: true, name: true } } },
@@ -22,7 +22,7 @@ export default async function DokumentationPage() {
         title="Dokumentation"
         subtitle="Zentrale Verwaltung aller Hausdokumente"
       />
-      <DokumentationClient docs={docs as Parameters<typeof DokumentationClient>[0]['docs']} components={components} />
+      <DokumentationClient docs={docs as Parameters<typeof DokumentationClient>[0]['docs']} components={components} initialComponentId={searchParams.componentId ?? ''} />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -57,10 +57,8 @@ function DocIcon({ mimeType, externalUrl, small }: { mimeType: string | null; ex
 
 type ModalMode = 'upload' | 'link' | null;
 
-export function DokumentationClient({ docs, components }: { docs: HouseDocument[]; components: Component[] }) {
+export function DokumentationClient({ docs, components, initialComponentId = '' }: { docs: HouseDocument[]; components: Component[]; initialComponentId?: string }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialComponentId = searchParams.get('componentId') ?? '';
 
   const [categoryFilter, setCategoryFilter] = useState('');
   const [componentFilter, setComponentFilter] = useState(initialComponentId);

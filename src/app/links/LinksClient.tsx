@@ -46,6 +46,7 @@ export function LinksClient({ links: initialLinks }: { links: LinkItem[] }) {
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const filtered = links.filter((l) => {
     if (catFilter && l.category !== catFilter) return false;
@@ -167,7 +168,29 @@ export function LinksClient({ links: initialLinks }: { links: LinkItem[] }) {
             </select>
           )}
         </div>
-        <Button size="sm" onClick={startAdd}>+ Link hinzufügen</Button>
+        <div className="flex items-center gap-2">
+          <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setViewMode('list')}
+              title="Listenansicht"
+              className={`px-2.5 py-1.5 ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              title="Kachelansicht"
+              className={`px-2.5 py-1.5 ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+              </svg>
+            </button>
+          </div>
+          <Button size="sm" onClick={startAdd}>+ Link hinzufügen</Button>
+        </div>
       </div>
 
       {/* Add/Edit form (inline) */}
@@ -228,28 +251,59 @@ export function LinksClient({ links: initialLinks }: { links: LinkItem[] }) {
         </Card>
       )}
 
-      {/* Grouped list */}
-      {grouped.map(({ cat, items }) => (
-        <Card key={cat}>
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{cat}</h2>
-          <div>
-            {items.map((l) => <LinkRow key={l.id} l={l} />)}
-          </div>
-        </Card>
-      ))}
-
-      {/* Uncategorized */}
-      {uncategorized.length > 0 && (
-        <Card>
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Ohne Kategorie</h2>
-          <div>
-            {uncategorized.map((l) => <LinkRow key={l.id} l={l} />)}
-          </div>
-        </Card>
-      )}
-
       {filtered.length === 0 && links.length > 0 && (
         <Card><p className="text-sm text-gray-400 text-center py-6">Keine Links gefunden.</p></Card>
+      )}
+
+      {/* LIST VIEW */}
+      {viewMode === 'list' && (
+        <>
+          {grouped.map(({ cat, items }) => (
+            <Card key={cat}>
+              <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{cat}</h2>
+              <div>
+                {items.map((l) => <LinkRow key={l.id} l={l} />)}
+              </div>
+            </Card>
+          ))}
+          {uncategorized.length > 0 && (
+            <Card>
+              <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Ohne Kategorie</h2>
+              <div>
+                {uncategorized.map((l) => <LinkRow key={l.id} l={l} />)}
+              </div>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* GRID VIEW */}
+      {viewMode === 'grid' && filtered.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filtered.map((l) => (
+            <Card key={l.id}>
+              <div className="flex flex-col gap-1.5">
+                <a
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium text-blue-700 hover:underline line-clamp-2"
+                >
+                  {l.title}
+                </a>
+                {l.category && (
+                  <span className="inline-flex w-fit items-center px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700">{l.category}</span>
+                )}
+                {l.description && <p className="text-xs text-gray-500 line-clamp-2">{l.description}</p>}
+                <p className="text-xs text-gray-300 truncate">{l.url}</p>
+                <div className="flex gap-3 mt-1">
+                  <button onClick={() => startEdit(l)} className="text-xs text-gray-400 hover:text-blue-600">Bearbeiten</button>
+                  <button onClick={() => handleDelete(l.id)} disabled={deleting === l.id} className="text-xs text-red-400 hover:text-red-600 disabled:opacity-50">Löschen</button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );
