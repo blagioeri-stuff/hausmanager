@@ -1,27 +1,34 @@
 # Stage 1: Install dependencies
-FROM node:20-alpine AS deps
+FROM node:20-slim AS deps
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 # Skip postinstall (prisma generate) here — prisma schema is not yet copied.
 # The builder stage runs `prisma generate` explicitly after copying the schema.
 RUN npm ci --ignore-scripts
 
 # Stage 2: Build
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
 RUN npm run build
 
 # Stage 3: Production runner
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates tar \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --system --gid 1001 nodejs \
+ && useradd --system --uid 1001 --gid nodejs nextjs
 
 # Copy standalone build
 COPY --from=builder /app/.next/standalone ./
@@ -34,9 +41,9 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
-# Create uploads dir
-RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
-RUN chown -R nextjs:nodejs /app
+# Create uploads + data dirs
+RUN mkdir -p /app/uploads /app/data/backups \
+ && chown -R nextjs:nodejs /app
 
 USER nextjs
 
