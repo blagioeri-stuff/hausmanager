@@ -35,19 +35,21 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Copy Prisma files needed at runtime
+# Copy Prisma files needed at runtime (incl. CLI for migrate deploy)
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
-# Create uploads + data dirs
-RUN mkdir -p /app/uploads /app/data/backups \
- && chown -R nextjs:nodejs /app
+# Create uploads + data dirs + home dir for nextjs (prisma CLI needs $HOME)
+RUN mkdir -p /app/uploads /app/data/backups /home/nextjs \
+ && chown -R nextjs:nodejs /app /home/nextjs
 
 USER nextjs
 
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV HOME=/home/nextjs
 
-CMD ["sh", "-c", "DATABASE_URL=file:/app/data/hausmanager.db /app/node_modules/.bin/prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "DATABASE_URL=file:/app/data/hausmanager.db node /app/node_modules/prisma/build/index.js migrate deploy && node server.js"]
