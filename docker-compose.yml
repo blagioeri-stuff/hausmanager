@@ -18,7 +18,6 @@ services:
     networks:
       - hm_net
     mem_limit: 512m
-    cpus: '0.5'
 
   cloudflared:
     image: cloudflare/cloudflared:latest
