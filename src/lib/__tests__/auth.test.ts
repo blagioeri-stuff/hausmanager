@@ -84,7 +84,7 @@ describe('hashPassword / verifyPassword', () => {
 
   it('rejects malformed hash strings', async () => {
     expect(await verifyPassword('any', 'garbage')).toBe(false);
-    expect(await verifyPassword('any', 'scrypt$abc')).toBe(false);
-    expect(await verifyPassword('any', 'bcrypt$x$y')).toBe(false);
+    expect(await verifyPassword('any', 'scrypt:abc')).toBe(false);
+    expect(await verifyPassword('any', 'bcrypt:x:y')).toBe(false);
   });
 });

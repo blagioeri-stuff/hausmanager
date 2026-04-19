@@ -9,11 +9,11 @@ const SALT_LEN = 16;
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(SALT_LEN);
   const key = await scryptAsync(password, salt, KEY_LEN);
-  return `scrypt$${salt.toString('hex')}$${key.toString('hex')}`;
+  return `scrypt:${salt.toString('hex')}:${key.toString('hex')}`;
 }
 
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
-  const parts = stored.split('$');
+  const parts = stored.split(':');
   if (parts.length !== 3 || parts[0] !== 'scrypt') return false;
   try {
     const salt = Buffer.from(parts[1], 'hex');
