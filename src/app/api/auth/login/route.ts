@@ -33,8 +33,17 @@ function sanitizeNext(next: string): string {
   return next;
 }
 
+function getBaseUrl(req: NextRequest): URL {
+  const forwardedHost = req.headers.get('x-forwarded-host');
+  if (forwardedHost) {
+    const forwardedProto = req.headers.get('x-forwarded-proto') ?? 'https';
+    return new URL(`${forwardedProto}://${forwardedHost}`);
+  }
+  return new URL(req.url);
+}
+
 export async function POST(req: NextRequest) {
-  const url = new URL(req.url);
+  const url = getBaseUrl(req);
   const secret = process.env.SESSION_SECRET;
   const hash = process.env.APP_PASSWORD_HASH;
 
