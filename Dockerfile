@@ -50,4 +50,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-CMD ["sh", "-c", "DATABASE_URL=file:/app/data/hausmanager.db npx prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "DATABASE_URL=file:/app/data/hausmanager.db /app/node_modules/.bin/prisma migrate deploy && node server.js"]
