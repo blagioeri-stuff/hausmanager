@@ -2,7 +2,9 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# Skip postinstall (prisma generate) here — prisma schema is not yet copied.
+# The builder stage runs `prisma generate` explicitly after copying the schema.
+RUN npm ci --ignore-scripts
 
 # Stage 2: Build
 FROM node:20-alpine AS builder
