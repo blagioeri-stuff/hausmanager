@@ -80,7 +80,7 @@ export function ChatWidget() {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-36 right-4 md:bottom-20 md:right-6 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col" style={{ height: '420px' }}>
+        <div className="fixed z-50 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col left-2 right-2 bottom-[4.5rem] max-h-[65vh] md:left-auto md:right-6 md:bottom-20 md:w-96 md:max-h-none" style={{ height: 'clamp(320px, 65vh, 420px)' }}>
           {/* Header */}
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-blue-600 rounded-t-2xl">
             <div className="flex items-center gap-2">

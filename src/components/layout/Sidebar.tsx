@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -116,6 +117,25 @@ const einstellungenItem = {
   ),
 };
 
+// Items always visible in mobile bottom nav
+const primaryMobileItems = [
+  navItems[0], // Dashboard
+  navItems[2], // Komponenten
+  navItems[4], // Garten
+  navItems[5], // Dokumentation
+];
+
+// Items only in the Mehr drawer
+const secondaryMobileItems = [
+  navItems[1], // KI-Dashboard
+  navItems[3], // Kosten
+  navItems[6], // Links
+  navItems[7], // Bericht
+  navItems[8], // KI-Import
+  navItems[9], // Log
+  einstellungenItem,
+];
+
 interface SidebarProps {
   version?: string;
   installedAt?: string;
@@ -123,6 +143,13 @@ interface SidebarProps {
 
 export function Sidebar({ version, installedAt }: SidebarProps) {
   const pathname = usePathname();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const isMehrActive = secondaryMobileItems.some(
+    (item) => pathname === item.href || pathname.startsWith(item.href + '/')
+  );
+
+  const gartenItem = navItems[4];
 
   return (
     <>
@@ -251,23 +278,115 @@ export function Sidebar({ version, installedAt }: SidebarProps) {
       </aside>
 
       {/* Mobile bottom navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex">
-        {[...navItems, einstellungenItem].map((item) => {
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex safe-area-inset-bottom">
+        {primaryMobileItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition-colors ${
+              onClick={() => setDrawerOpen(false)}
+              className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[11px] font-medium transition-colors ${
                 isActive ? 'text-blue-600' : 'text-gray-500 hover:text-gray-900'
               }`}
             >
               <span>{item.icon}</span>
-              <span>{'ki' in item && item.ki ? 'KI' : item.label}</span>
+              <span>{item.label}</span>
             </Link>
           );
         })}
+
+        {/* Mehr button */}
+        <button
+          onClick={() => setDrawerOpen((o) => !o)}
+          className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[11px] font-medium transition-colors relative ${
+            drawerOpen || isMehrActive ? 'text-blue-600' : 'text-gray-500 hover:text-gray-900'
+          }`}
+        >
+          {drawerOpen ? (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+          <span>Mehr</span>
+          {isMehrActive && !drawerOpen && (
+            <span className="absolute top-1.5 right-3 w-1.5 h-1.5 bg-blue-600 rounded-full" />
+          )}
+        </button>
       </nav>
+
+      {/* Mobile Mehr drawer */}
+      {drawerOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="md:hidden fixed inset-0 z-30 bg-black/20"
+            onClick={() => setDrawerOpen(false)}
+          />
+          {/* Drawer panel */}
+          <div className="md:hidden fixed bottom-14 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-xl rounded-t-xl max-h-[70vh] overflow-y-auto">
+            {/* Garten sub-navigation */}
+            <div className="px-4 pt-4 pb-2">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">Garten</p>
+              <div className="grid grid-cols-3 gap-1">
+                {gartenItem.children?.map((child) => {
+                  const childActive = child.href === gartenItem.href
+                    ? pathname === child.href
+                    : pathname === child.href || pathname.startsWith(child.href + '/');
+                  return (
+                    <Link
+                      key={child.href}
+                      href={child.href}
+                      onClick={() => setDrawerOpen(false)}
+                      className={`flex items-center justify-center px-2 py-2 rounded-lg text-xs font-medium text-center transition-colors ${
+                        childActive
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {child.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 px-4 py-3">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">Weitere</p>
+              <div className="grid grid-cols-2 gap-1">
+                {secondaryMobileItems.map((item) => {
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                  const label = 'ki' in item && item.ki ? 'KI-Import' : item.label;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setDrawerOpen(false)}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className={`shrink-0 ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>
+                        {item.icon}
+                      </span>
+                      {label}
+                      {'ki' in item && item.ki && (
+                        <span className="ml-auto text-[10px] bg-blue-600 text-white rounded-full px-1.5 py-0.5">KI</span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

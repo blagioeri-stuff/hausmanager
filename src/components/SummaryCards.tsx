@@ -18,35 +18,36 @@ export function SummaryCards({ summary, monthlyContributionChf }: Props) {
   const hasIst = istReserveChf > 0;
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
       <Card>
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Jährl. Rücklage (SOLL)</p>
-        <p className="text-2xl font-bold text-blue-600">{formatChf(summary.totalAnnualSavingsChf)}</p>
-        <p className="text-xs text-gray-400 mt-1">
-          {formatChf(summary.totalAnnualSavingsChf / 12)} / Monat
+        <p className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Jährl. Rücklage</p>
+        <p className="text-lg md:text-2xl font-bold text-blue-600 truncate">{formatChf(summary.totalAnnualSavingsChf)}</p>
+        <p className="text-[10px] md:text-xs text-gray-400 mt-1">
+          {formatChf(summary.totalAnnualSavingsChf / 12)} / Mt.
           {monthlyContributionChf != null && monthlyContributionChf > 0 && (
-            <span className="ml-1 text-green-600">· IST: {formatChf(monthlyContributionChf)} / Mt.</span>
+            <span className="block text-green-600">IST: {formatChf(monthlyContributionChf)} / Mt.</span>
           )}
         </p>
       </Card>
 
       <Card>
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Deckungsgrad</p>
+        <p className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Deckungsgrad</p>
         {hasIst && deckungsgradPct !== null ? (
           <>
-            <p className={`text-2xl font-bold ${deckungsgradColor(deckungsgradPct)}`}>
+            <p className={`text-lg md:text-2xl font-bold ${deckungsgradColor(deckungsgradPct)}`}>
               {Math.round(deckungsgradPct)} %
             </p>
-            <p className="text-xs text-gray-400 mt-1">
-              IST {formatChf(istReserveChf)} / SOLL {formatChf(totalSollReserveChf)}
+            <p className="text-[10px] md:text-xs text-gray-400 mt-1">
+              IST {formatChf(istReserveChf)}
+              <span className="block">SOLL {formatChf(totalSollReserveChf)}</span>
             </p>
           </>
         ) : (
           <>
-            <p className="text-2xl font-bold text-gray-300">—</p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-lg md:text-2xl font-bold text-gray-300">—</p>
+            <p className="text-[10px] md:text-xs text-gray-400 mt-1">
               {totalSollReserveChf > 0
-                ? `SOLL: ${formatChf(totalSollReserveChf)} · IST in Einstellungen`
+                ? `SOLL: ${formatChf(totalSollReserveChf)}`
                 : 'In Einstellungen erfassen'}
             </p>
           </>
@@ -54,9 +55,9 @@ export function SummaryCards({ summary, monthlyContributionChf }: Props) {
       </Card>
 
       <Card>
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Komponenten</p>
-        <p className="text-2xl font-bold text-gray-900">{summary.componentCount}</p>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Komponenten</p>
+        <p className="text-lg md:text-2xl font-bold text-gray-900">{summary.componentCount}</p>
+        <p className="text-[10px] md:text-xs text-gray-400 mt-1">
           {summary.componentsDueIn10Years.length > 0
             ? `${summary.componentsDueIn10Years.length} fällig in 10 J.`
             : 'Alle gut geplant'}
@@ -64,11 +65,11 @@ export function SummaryCards({ summary, monthlyContributionChf }: Props) {
       </Card>
 
       <Card>
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Nächste Erneuerung</p>
+        <p className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Nächste Erneuerung</p>
         {summary.nextReplacementComponent ? (
           <>
-            <p className="text-2xl font-bold text-gray-900">{summary.nextReplacementYear}</p>
-            <p className="text-xs text-gray-400 mt-1 truncate">{summary.nextReplacementComponent.name}</p>
+            <p className="text-lg md:text-2xl font-bold text-gray-900">{summary.nextReplacementYear}</p>
+            <p className="text-[10px] md:text-xs text-gray-400 mt-1 truncate">{summary.nextReplacementComponent.name}</p>
           </>
         ) : (
           <p className="text-sm text-gray-400 mt-2">—</p>
