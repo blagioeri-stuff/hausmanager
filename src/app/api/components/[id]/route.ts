@@ -10,14 +10,32 @@ const UpdateSchema = z.object({
     .string()
     .refine((k) => k in COMPONENT_TYPES, { message: 'Unbekannter Typ' })
     .optional(),
-  buildYear: z.number().int().min(1900).max(new Date().getFullYear()).optional(),
-  customCostChf: z.number().positive().nullable().optional(),
-  customLifetimeYrs: z.number().int().positive().nullable().optional(),
-  plannedRenovationYear: z.number().int().min(1900).nullable().optional(),
-  plannedRenovationCostChf: z.number().positive().nullable().optional(),
+  buildYear: z.preprocess(
+    (val) => (typeof val === 'string' ? Number(val) : val),
+    z.number().int().min(1900).max(new Date().getFullYear()).optional()
+  ),
+  customCostChf: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
+    z.nullable(z.number().positive()).optional()
+  ),
+  customLifetimeYrs: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
+    z.nullable(z.number().int().positive()).optional()
+  ),
+  plannedRenovationYear: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
+    z.nullable(z.number().int().min(1900)).optional()
+  ),
+  plannedRenovationCostChf: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
+    z.nullable(z.number().positive()).optional()
+  ),
   notes: z.string().nullable().optional(),
   renovationPlanned: z.boolean().optional(),
-  maintenanceIntervalMonths: z.number().int().positive().nullable().optional(),
+  maintenanceIntervalMonths: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
+    z.nullable(z.number().int().positive()).optional()
+  ),
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {

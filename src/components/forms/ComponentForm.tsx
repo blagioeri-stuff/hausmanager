@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
@@ -15,18 +15,32 @@ import type { EnrichedComponent } from '@/types';
 const schema = z.object({
   name: z.string().min(1, 'Name erforderlich'),
   typeKey: z.string().min(1, 'Typ erforderlich'),
-  buildYear: z
-    .number()
-    .int('Ganzzahl erforderlich')
-    .min(1900, 'Min. 1900')
-    .max(new Date().getFullYear(), `Max. ${new Date().getFullYear()}`),
-  customCostChf: z.number().positive('Muss positiv sein').nullable().optional(),
-  customLifetimeYrs: z.number().int().positive('Muss positiv sein').nullable().optional(),
-  plannedRenovationYear: z.number().int('Ganzzahl').min(1900, 'Min. 1900').nullable().optional(),
-  plannedRenovationCostChf: z.number().positive('Muss positiv sein').nullable().optional(),
+  buildYear: z.preprocess(
+    (val) => (typeof val === 'string' ? Number(val) : val),
+    z.number().int('Ganzzahl erforderlich').min(1900, 'Min. 1900').max(new Date().getFullYear(), `Max. ${new Date().getFullYear()}`)
+  ),
+  customCostChf: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
+    z.nullable(z.number().positive('Muss positiv sein')).optional()
+  ),
+  customLifetimeYrs: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
+    z.nullable(z.number().int().positive('Muss positiv sein')).optional()
+  ),
+  plannedRenovationYear: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
+    z.nullable(z.number().int('Ganzzahl').min(1900, 'Min. 1900')).optional()
+  ),
+  plannedRenovationCostChf: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
+    z.nullable(z.number().positive('Muss positiv sein')).optional()
+  ),
   notes: z.string().nullable().optional(),
   renovationPlanned: z.boolean().optional(),
-  maintenanceIntervalMonths: z.number().int().positive('Muss positiv sein').nullable().optional(),
+  maintenanceIntervalMonths: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
+    z.nullable(z.number().int().positive('Muss positiv sein')).optional()
+  ),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -56,7 +70,8 @@ export function ComponentForm({ component, prefill }: Props) {
     control,
     formState: { errors },
   } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    mode: 'onSubmit',
+    resolver: zodResolver(schema) as Resolver<FormData>,
     defaultValues: {
       name: component?.name ?? prefill?.name ?? '',
       typeKey: component?.typeKey ?? prefill?.typeKey ?? '',
@@ -180,7 +195,7 @@ export function ComponentForm({ component, prefill }: Props) {
           placeholder={typeDef ? String(typeDef.defaultCostChf) : ''}
           hint="Leer = Standardwert verwenden"
           error={errors.customCostChf?.message}
-          {...register('customCostChf', { setValueAs: (v) => (v === '' || isNaN(Number(v)) ? null : Number(v)) })}
+          {...register('customCostChf')}
         />
         <Input
           label="Lebensdauer (Jahre) — optional"
@@ -188,7 +203,7 @@ export function ComponentForm({ component, prefill }: Props) {
           placeholder={typeDef ? String(typeDef.defaultLifetimeYrs) : ''}
           hint="Leer = Standardwert verwenden"
           error={errors.customLifetimeYrs?.message}
-          {...register('customLifetimeYrs', { setValueAs: (v) => (v === '' || isNaN(Number(v)) ? null : Number(v)) })}
+          {...register('customLifetimeYrs')}
         />
       </div>
 
@@ -254,7 +269,7 @@ export function ComponentForm({ component, prefill }: Props) {
         placeholder={typeDef && 'defaultMaintenanceIntervalMonths' in typeDef ? String((typeDef as { defaultMaintenanceIntervalMonths?: number }).defaultMaintenanceIntervalMonths) : '12'}
         hint="Leer = keine Erinnerung. z.B. 12 für jährlichen Heizungsservice."
         error={errors.maintenanceIntervalMonths?.message}
-        {...register('maintenanceIntervalMonths', { setValueAs: (v) => (v === '' || isNaN(Number(v)) ? null : parseInt(String(v), 10)) })}
+        {...register('maintenanceIntervalMonths')}
       />
 
       <Textarea

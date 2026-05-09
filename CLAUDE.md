@@ -88,6 +88,40 @@ git push -u origin claude/home-maintenance-app-qoaBs
 - Neue Sidebar-Einträge ins `navItems`-Array in `Sidebar.tsx` einfügen
 - Tests: `src/lib/__tests__/*.test.ts` mit Vitest, `globals: true`
 
+## Deployment auf Synology NAS
+- Das Projekt ist Docker-ready mit `Dockerfile` und `docker-compose.yml`.
+- SQLite-Datenbank liegt im Container unter `/app/data/hausmanager.db` und wird über das Volume `hausmanager_data` persistiert.
+- Uploads werden in `/app/uploads` gespeichert und per Volume `hausmanager_uploads` gesichert.
+- Die Container-Umgebung setzt `DATABASE_URL=file:/app/data/hausmanager.db` und `UPLOAD_DIR=/app/uploads`.
+- Beim Start führt der Container `npx prisma migrate deploy` aus, um Migrationen automatisch anzuwenden.
+
+### Synology NAS Deployment via SSH
+1. Auf dem NAS einen Zielordner anlegen:
+```bash
+ssh claude-deploy@192.168.178.189 'mkdir -p ~/hausmanager && cd ~/hausmanager'
+```
+2. Projektdateien übertragen (beispielsweise per `scp` oder `rsync`):
+```bash
+rsync -av --exclude node_modules --exclude .git ./hausmanager/ claude-deploy@192.168.178.189:~/hausmanager/
+```
+3. Auf dem NAS in den Projektordner wechseln:
+```bash
+ssh claude-deploy@192.168.178.189 'cd ~/hausmanager && docker compose pull && docker compose build && docker compose up -d'
+```
+4. Alternative ohne Pull, wenn der Quellcode lokal gebaut werden soll:
+```bash
+ssh claude-deploy@192.168.178.189 'cd ~/hausmanager && docker compose build && docker compose up -d'
+```
+5. Logs prüfen:
+```bash
+ssh claude-deploy@192.168.178.189 'cd ~/hausmanager && docker compose logs -f hausmanager'
+```
+
+### Wichtige Hinweise
+- Synology verwendet in der Regel `docker compose`; `docker-compose` kann bei älteren DSM-Versionen anders heißen.
+- Setze sensible Umgebungsvariablen wie `CLAUDE_API_KEY` nur auf dem NAS, nicht im Repo.
+- Wenn du ein NAS-spezifisches Backup-Verzeichnis brauchst, ergänze `BACKUP_DIR` in einer `.env` oder in `docker-compose.yml`.
+
 ## Aktueller Stand (v1.1.0)
 Alle Features aus Phase 9, G2, G3, G4 implementiert. Letzter Commit: `b6d7497`.
 Offene Punkte: keine bekannten Bugs.
